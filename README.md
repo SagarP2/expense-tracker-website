@@ -105,6 +105,7 @@ Frontend will run on `http://localhost:5173` (or next available port)
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
 
+<<<<<<< HEAD
 ### Collaborations
 - `POST /api/collab/invite` - Send collaboration invite
 - `POST /api/collab/:id/accept` - Accept invitation
@@ -195,3 +196,6 @@ MIT
 ## Author
 
 Built with ❤️ using React, Node.js, and MongoDB
+=======
+
+>>>>>>> 34ce4d42d55ef8f76d8eba9d3f394c96aff99c71
