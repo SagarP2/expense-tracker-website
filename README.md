@@ -100,21 +100,5 @@ VITE_API_URL=http://localhost:5000/api
     ```
     (Ensure `NODE_ENV=production` is set in `.env`)
 
-## Deployment
 
-### Backend (Render / Railway / DigitalOcean)
-1.  Connect your repository.
-2.  Set Root Directory to `backend`.
-3.  Set Build Command: `npm install`.
-4.  Set Start Command: `node server.js`.
-5.  Add Environment Variables from `.env`.
 
-### Frontend (Vercel / Netlify)
-1.  Connect your repository.
-2.  Set Root Directory to `frontend`.
-3.  Set Build Command: `npm run build`.
-4.  Set Output Directory: `dist`.
-5.  Add Environment Variables (e.g., `VITE_API_URL`).
-
-## License
-ISC
