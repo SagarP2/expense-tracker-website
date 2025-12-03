@@ -28,9 +28,9 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (name,email,password,mobileNumber) => {
         const { data } = await api.post('/auth/register',{ name,email,password,mobileNumber });
-        localStorage.setItem('token',data.token);
-        localStorage.setItem('user',JSON.stringify(data));
-        setUser(data);
+        // Don't auto-login - user must verify email first
+        // Just return the response data which includes the verification message
+        return data;
     };
 
     const updateProfile = async (userData) => {
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user,login,register,logout,loading,updateProfile }}>
+        <AuthContext.Provider value={{ user,setUser,login,register,logout,loading,updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

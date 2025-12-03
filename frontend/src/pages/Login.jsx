@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { X } from 'lucide-react';
+
 
 export default function Login() {
   const [email,setEmail] = useState('');
@@ -25,6 +27,12 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
+        <button
+          onClick={() => navigate('/')}
+          className="absolute top-4 right-4 text-text-muted hover:text-text transition-colors"
+        >
+          <X size={20} />
+        </button>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-text">Welcome Back</h1>
           <p className="text-text-muted">Sign in to manage your expenses</p>

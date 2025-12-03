@@ -8,6 +8,9 @@ const userSchema = mongoose.Schema(
         password: { type: String,required: true },
         mobileNumber: { type: String,default: '' },
         savingsGoal: { type: Number,default: 0 },
+        emailVerified: { type: Boolean,default: false },
+        verificationToken: String,
+        verificationExpires: Date,
     },
     { timestamps: true }
 );

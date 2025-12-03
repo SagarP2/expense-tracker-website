@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -10,7 +11,18 @@ const transactionRoutes = require('./src/routes/transactionRoutes');
 const collabRoutes = require('./src/routes/collabRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 
-dotenv.config();
+// Load environment variables
+dotenv.config({ path: path.join(__dirname,'.env') });
+
+// Verify critical env vars are loaded
+console.log('🔧 Environment check:',{
+    PORT: process.env.PORT,
+    NODE_ENV: process.env.NODE_ENV,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS ? '****' + process.env.SMTP_PASS.slice(-4) : 'NOT SET'
+});
+
 connectDB();
 
 const app = express();

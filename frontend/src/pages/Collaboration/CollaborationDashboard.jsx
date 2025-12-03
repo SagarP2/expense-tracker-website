@@ -636,7 +636,12 @@ export default function CollaborationDashboard() {
               <Users size={32} className="text-primary" />
               Shared with {otherUser?.name}
             </h2>
-            <p className="text-text-muted mt-1">{otherUser?.email}</p>
+            <div className="flex items-center gap-2 mt-1 text-text-muted">
+              <p>{otherUser?.email}</p>
+              {otherUser?.mobileNumber && (
+                <p className="flex items-center ml-5">• {otherUser?.mobileNumber}</p>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -899,7 +904,7 @@ export default function CollaborationDashboard() {
             </div>
 
             {/* Settlements */}
-            <div ref={userASettlementRef} className="max-h-[80px] overflow-y-auto pr-1 custom-scrollbar space-y-1">
+            <div ref={userASettlementRef} className="max-h-[80px] overflow-y-auto pr-1 custom-scrollbar space-y-2">
               {displayBalance.userA.settlements.map((s,index) => (
                 <div key={s._id} className="flex justify-between text-sm">
                   <span className="text-text-muted">Settlement {index + 1}</span>
@@ -1061,8 +1066,8 @@ export default function CollaborationDashboard() {
                     <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[180px]">Date</th>
                     <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider">Description</th>
                     <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[180px]">Category</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[180px]">Amount</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[140px]">Paid By</th>
+                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[160px]">Amount</th>
+                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[160px]">Paid By</th>
                     <th className="text-right py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[100px]">Actions</th>
                   </tr>
                 </thead>

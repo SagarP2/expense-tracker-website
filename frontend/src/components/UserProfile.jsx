@@ -33,11 +33,15 @@ export function UserProfile({ isOpen,onClose }) {
         try {
             await updateProfile(formData);
             setSuccess('Profile updated successfully');
+            setTimeout(() => setSuccess(''),2000);
             setIsEditing(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update profile');
+            setTimeout(() => setError(''),2000);
         }
-    };
+
+    }
+
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -151,3 +155,4 @@ export function UserProfile({ isOpen,onClose }) {
         document.body
     );
 }
+

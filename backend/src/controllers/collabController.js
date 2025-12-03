@@ -33,7 +33,7 @@ exports.sendInvite = async (req,res) => {
                 existingCollab.invitedUser = invitedUser._id;
                 await existingCollab.save();
 
-                await existingCollab.populate('users','name email');
+                await existingCollab.populate('users','name email mobileNumber');
                 await existingCollab.populate('createdBy','name email');
 
                 return res.status(200).json(existingCollab);
@@ -54,8 +54,21 @@ exports.sendInvite = async (req,res) => {
             status: 'pending'
         });
 
-        await collaboration.populate('users','name email');
+        await collaboration.populate('users','name email mobileNumber');
         await collaboration.populate('createdBy','name email');
+
+        const { createNotification } = require('../services/notificationService');
+        await createNotification(
+            invitedUser._id,
+            collaboration._id,
+            'invite_received',
+            {
+                collabName: 'New Collaboration', // Ideally get name if available
+                inviterName: req.user.name,
+                collabId: collaboration._id
+            },
+            `invite_received_${collaboration._id}`
+        );
 
         res.status(201).json(collaboration);
     } catch (error) {
@@ -86,8 +99,22 @@ exports.acceptInvite = async (req,res) => {
         collaboration.status = 'active';
         await collaboration.save();
 
-        await collaboration.populate('users','name email');
+        await collaboration.populate('users','name email mobileNumber');
         await collaboration.populate('createdBy','name email');
+
+        const { createNotification } = require('../services/notificationService');
+        await createNotification(
+            collaboration.createdBy._id,
+            collaboration._id,
+            'invite_response',
+            {
+                collabName: 'Collaboration',
+                userName: req.user.name,
+                status: 'accepted',
+                collabId: collaboration._id
+            },
+            `invite_accepted_${collaboration._id}`
+        );
 
         res.json(collaboration);
     } catch (error) {
@@ -118,6 +145,20 @@ exports.rejectInvite = async (req,res) => {
         collaboration.status = 'rejected';
         await collaboration.save();
 
+        const { createNotification } = require('../services/notificationService');
+        await createNotification(
+            collaboration.createdBy,
+            collaboration._id,
+            'invite_response',
+            {
+                collabName: 'Collaboration',
+                userName: req.user.name,
+                status: 'rejected',
+                collabId: collaboration._id
+            },
+            `invite_rejected_${collaboration._id}`
+        );
+
         res.json({ message: 'Invitation rejected' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -132,7 +173,7 @@ exports.getMyCollaborations = async (req,res) => {
         const collaborations = await Collaboration.find({
             users: userId
         })
-            .populate('users','name email')
+            .populate('users','name email mobileNumber')
             .populate('createdBy','name email')
             .populate('deletionRequest.requestedBy','name email')
             .sort({ createdAt: -1 });
@@ -151,7 +192,7 @@ exports.getCollaboration = async (req,res) => {
         const userId = req.user.id;
 
         const collaboration = await Collaboration.findById(id)
-            .populate('users','name email')
+            .populate('users','name email mobileNumber')
             .populate('createdBy','name email')
             .populate('deletionRequest.requestedBy','name email');
 
@@ -343,7 +384,7 @@ exports.getBalanceSummary = async (req,res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
-        const collaboration = await Collaboration.findById(id).populate('users','name email');
+        const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
         if (!collaboration) {
             return res.status(404).json({ message: 'Collaboration not found' });
         }
@@ -467,7 +508,7 @@ exports.settlePayment = async (req,res) => {
         }
 
         // Get collaboration
-        const collaboration = await Collaboration.findById(id).populate('users','name email');
+        const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
         if (!collaboration) {
             throw new Error('Collaboration not found');
         }
@@ -609,6 +650,19 @@ exports.settlePayment = async (req,res) => {
                 owedAmount
             }
         });
+
+        const { createNotification } = require('../services/notificationService');
+        await createNotification(
+            receiverId,
+            id,
+            'settlement_paid',
+            {
+                payerName: req.user.name,
+                amount: amount,
+                collabId: id
+            },
+            `settlement_paid_${id}_${Date.now()}`
+        );
     } catch (error) {
         console.error('Settlement payment error:',error);
         res.status(400).json({ message: error.message });
@@ -645,7 +699,7 @@ exports.requestDeletion = async (req,res) => {
         };
         await collaboration.save();
 
-        await collaboration.populate('users','name email');
+        await collaboration.populate('users','name email mobileNumber');
         await collaboration.populate('deletionRequest.requestedBy','name email');
 
         res.json(collaboration);
@@ -717,7 +771,22 @@ exports.rejectDeletion = async (req,res) => {
         };
         await collaboration.save();
 
-        await collaboration.populate('users','name email');
+        await collaboration.populate('users','name email mobileNumber');
+
+        const { createNotification } = require('../services/notificationService');
+        const requester = collaboration.settlementRequest.requestedBy;
+        if (requester) {
+            await createNotification(
+                requester,
+                collaboration._id,
+                'settlement_response',
+                {
+                    status: 'rejected',
+                    collabId: collaboration._id
+                },
+                `settlement_rejected_${collaboration._id}_${Date.now()}`
+            );
+        }
 
         res.json(collaboration);
     } catch (error) {
@@ -739,7 +808,7 @@ exports.requestSettlement = async (req,res) => {
             return res.status(400).json({ message: 'Invalid payment method' });
         }
 
-        const collaboration = await Collaboration.findById(id).populate('users','name email');
+        const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
         if (!collaboration) {
             return res.status(404).json({ message: 'Collaboration not found' });
         }
@@ -767,6 +836,22 @@ exports.requestSettlement = async (req,res) => {
 
         await collaboration.populate('settlementRequest.requestedBy','name email');
 
+        const { createNotification } = require('../services/notificationService');
+        const otherUser = collaboration.users.find(u => u._id.toString() !== userId);
+        if (otherUser) {
+            await createNotification(
+                otherUser._id,
+                collaboration._id,
+                'settlement_request',
+                {
+                    requesterName: req.user.name,
+                    amount: amount,
+                    collabId: collaboration._id
+                },
+                `settlement_request_${collaboration._id}_${Date.now()}`
+            );
+        }
+
         res.json(collaboration);
     } catch (error) {
         console.error('requestSettlement error:',error);
@@ -780,7 +865,7 @@ exports.acceptSettlementRequest = async (req,res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
-        const collaboration = await Collaboration.findById(id).populate('users','name email');
+        const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
         if (!collaboration) {
             return res.status(404).json({ message: 'Collaboration not found' });
         }
@@ -833,6 +918,23 @@ exports.acceptSettlementRequest = async (req,res) => {
             method: 'UPI'
         };
         await collaboration.save();
+
+        await collaboration.populate('users','name email mobileNumber');
+
+        const { createNotification } = require('../services/notificationService');
+        if (receiverId) {
+            await createNotification(
+                receiverId,
+                collaboration._id,
+                'settlement_paid',
+                {
+                    payerName: req.user.name,
+                    amount: amount,
+                    collabId: collaboration._id
+                },
+                `settlement_paid_${collaboration._id}_${Date.now()}`
+            );
+        }
 
         res.json({ message: 'Settlement completed successfully',collaboration });
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './ui/Avatar';
-import { Menu,Bell,LogOut,Search } from 'lucide-react';
+import { Menu,Bell,LogOut } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useState } from 'react';
 import { UserProfile } from './UserProfile';
