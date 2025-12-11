@@ -3,33 +3,38 @@ const Redis = require('ioredis');
 let redis;
 let isRedisAvailable = false;
 
-try {
-    redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379',{
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-        retryStrategy(times) {
-            if (times > 3) {
-                console.warn('Redis connection failed, switching to no-op mode.');
-                return null; // Stop retrying
+const redisUrl = process.env.REDIS_URL;
+
+if (redisUrl) {
+    try {
+        redis = new Redis(redisUrl,{
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+            retryStrategy(times) {
+                if (times > 3) {
+                    console.warn('Redis connection failed, switching to no-op mode.');
+                    return null;
+                }
+                return Math.min(times * 100,2000);
             }
-            return Math.min(times * 100,2000);
-        }
-    });
+        });
 
-    redis.on('error',(err) => {
-        // Suppress connection errors to avoid crashing
-        if (err.code !== 'ECONNREFUSED') {
-            console.warn('Redis error (Cache):',err.message);
-        }
-        isRedisAvailable = false;
-    });
+        redis.on('error',(err) => {
+            if (err.code !== 'ECONNREFUSED') {
+                console.warn('Redis error (Cache):',err.message);
+            }
+            isRedisAvailable = false;
+        });
 
-    redis.on('connect',() => {
-        console.log('Redis connected (Cache)');
-        isRedisAvailable = true;
-    });
-} catch (e) {
-    console.warn('Could not initialize Redis client:',e.message);
+        redis.on('connect',() => {
+            console.log('Redis connected (Cache)');
+            isRedisAvailable = true;
+        });
+    } catch (e) {
+        console.warn('Could not initialize Redis client:',e.message);
+    }
+} else {
+    console.log('Cache: REDIS_URL not set. Using in-memory no-op cache.');
 }
 
 const get = async (key) => {

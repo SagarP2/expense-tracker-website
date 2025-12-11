@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./src/config/db');
+const mongoose = require('mongoose');
 const authRoutes = require('./src/routes/authRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const collabRoutes = require('./src/routes/collabRoutes');
@@ -103,6 +104,11 @@ app.get('/metrics',async (req,res) => {
     res.set('Content-Type',require('./src/metrics/metrics').register.contentType);
     res.end(await require('./src/metrics/metrics').register.metrics());
 });
+const ensureDbConnected = (req,res,next) => {
+    if (mongoose.connection.readyState === 1) return next();
+    res.status(503).json({ success: false,message: 'Database not connected',code: 'DB_NOT_READY' });
+};
+app.use('/api',ensureDbConnected);
 app.use('/api/auth',authRoutes);
 app.use('/api/transactions',transactionRoutes);
 app.use('/api/collab',collabRoutes);
@@ -148,4 +154,3 @@ process.on('SIGTERM',gracefulShutdown);
 process.on('SIGINT',gracefulShutdown);
 
 module.exports = { app,server,io };
-

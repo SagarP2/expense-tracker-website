@@ -19,9 +19,9 @@ router.patch('/:id/read',asyncHandler(markRead));
 router.delete('/delete-all',asyncHandler(deleteAllNotifications));
 router.delete('/:id',asyncHandler(deleteNotification));
 
-// Test queue
-const { enqueueNotification } = require('../queues/notificationProducer');
+// Test queue (lazy import to avoid Redis init on startup)
 router.post('/queue-test',asyncHandler(async (req,res) => {
+    const { enqueueNotification } = require('../queues/notificationProducer');
     await enqueueNotification('TEST_NOTIFICATION',req.body);
     res.status(202).json({ message: 'Notification enqueued' });
 }));
