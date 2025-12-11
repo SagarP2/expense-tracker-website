@@ -5,6 +5,7 @@ const notificationSchema = mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId,ref: 'User',required: true },
         collabId: { type: mongoose.Schema.Types.ObjectId,ref: 'Collaboration' },
         type: { type: String,required: true }, // invite_received, invite_response, settlement_request, etc.
+        message: { type: String },
         payload: { type: Object },
         isRead: { type: Boolean,default: false },
 

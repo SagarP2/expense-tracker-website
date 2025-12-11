@@ -87,15 +87,18 @@ const templates = {
     }),
     settlement_request: (payload) => ({
         subject: `Settlement Requested: ₹${payload.amount} - Expense Tracker`,
-        text: `Settlement Request\n\n${payload.requesterName} has requested a settlement of ₹${payload.amount}.\n\nView request at: ${process.env.FRONTEND_URL}/collaborations/${payload.collabId}`,
+        text: `Settlement Request\n\n${payload.requesterName} has requested a settlement of ₹${payload.amount}.\n\nPay now: ${payload.payUrl}\n\nOr view request at: ${process.env.FRONTEND_URL}/collaborations/${payload.collabId}`,
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h1 style="color: #333;">Settlement Request</h1>
                 <p>${payload.requesterName} has requested a settlement of ₹${payload.amount}.</p>
-                <a href="${process.env.FRONTEND_URL}/collaborations/${payload.collabId}" 
-                   style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
-                    View Request
+                <a href="${payload.payUrl}" 
+                   style="display: inline-block; padding: 12px 24px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                    Pay ₹${payload.amount}
                 </a>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                    or <a href="${process.env.FRONTEND_URL}/collaborations/${payload.collabId}" style="color: #4F46E5;">view collaboration details</a>
+                </p>
             </div>
         `,
     }),
@@ -142,13 +145,56 @@ const templates = {
             </div>
         `,
     }),
+    COLLAB_DELETE_REQUEST: (payload) => ({
+        subject: `Deletion Request: ${payload.collabName} - Expense Tracker`,
+        text: `Deletion Request\n\n${payload.requesterName} has requested to delete the collaboration "${payload.collabName}".\n\nReview request at: ${process.env.FRONTEND_URL}/collaborations/${payload.collabId}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #333;">Deletion Request</h1>
+                <p>${payload.requesterName} has requested to delete the collaboration "${payload.collabName}".</p>
+                <a href="${process.env.FRONTEND_URL}/collaborations/${payload.collabId}" 
+                   style="display: inline-block; padding: 12px 24px; background-color: #d93025; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                    Review Request
+                </a>
+            </div>
+        `,
+    }),
+    COLLAB_DELETED: (payload) => ({
+        subject: `Collaboration Deleted: ${payload.collabName} - Expense Tracker`,
+        text: `Collaboration Deleted\n\nThe collaboration "${payload.collabName}" has been deleted.\n\nView collaborations at: ${process.env.FRONTEND_URL}/collaborations`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #333;">Collaboration Deleted</h1>
+                <p>The collaboration "${payload.collabName}" has been deleted.</p>
+                <a href="${process.env.FRONTEND_URL}/collaborations" 
+                   style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                    View Collaborations
+                </a>
+            </div>
+        `,
+    }),
+    COLLAB_DELETE_REJECTED: (payload) => ({
+        subject: `Deletion Rejected: ${payload.collabName} - Expense Tracker`,
+        text: `Deletion Rejected\n\nThe deletion request for "${payload.collabName}" was rejected.\n\nView collaboration at: ${process.env.FRONTEND_URL}/collaborations/${payload.collabId}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #333;">Deletion Rejected</h1>
+                <p>The deletion request for "${payload.collabName}" was rejected.</p>
+                <a href="${process.env.FRONTEND_URL}/collaborations/${payload.collabId}" 
+                   style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                    View Collaboration
+                </a>
+            </div>
+        `,
+    }),
 };
 
 const sendEmail = async (to,type,payload) => {
     try {
         const templateFn = templates[type];
         if (!templateFn) {
-            throw new Error(`Invalid email type: ${type}`);
+            console.warn(`⚠️ Warning: No email template found for type: ${type}. Skipping email.`);
+            return null; // Fail gracefully
         }
 
         const { subject,text,html } = templateFn(payload);

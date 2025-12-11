@@ -1,0 +1,73 @@
+﻿
+> frontend@0.0.0 build
+> vite build
+
+[36mrolldown-vite v7.2.5 [32mbuilding client environment for production...[36m[39m
+[2K
+transforming...Γ£ô 2635 modules transformed.
+node.exe : [31mΓ£ù[39m Build failed in 2.23s
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31mΓ£ù[ 
+   39m Build failed in 2.23s:String) [], RemoteExcepti  
+  on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31merror during build:
+[31mBuild failed with 1 error:
+
+[plugin vite:css] 
+D:/Sagar/expense-tracker-main/frontend/src/index.css:3:0
+CssSyntaxError: [postcss] D:/Sagar/expense-tracker-main/
+frontend/src/index.css:3:1: The `bg-background` class 
+does not exist. If `bg-background` is a custom class, 
+make sure it is defined within a `@layer` directive.
+    at Input.error (D:\Sagar\expense-tracker-main\fronte
+nd\node_modules\postcss\lib\input.js:135:16)
+    at AtRule.error (D:\Sagar\expense-tracker-main\front
+end\node_modules\postcss\lib\node.js:146:32)
+    at processApply (D:\Sagar\expense-tracker-main\front
+end\node_modules\tailwindcss\lib\lib\expandApplyAtRules.
+js:380:29)
+    at D:\Sagar\expense-tracker-main\frontend\node_modul
+es\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+    at D:\Sagar\expense-tracker-main\frontend\node_modul
+es\tailwindcss\lib\processTailwindFeatures.js:55:50
+    at async plugins (D:\Sagar\expense-tracker-main\fron
+tend\node_modules\tailwindcss\lib\plugin.js:38:17)
+    at async LazyResult.runAsync (D:\Sagar\expense-track
+er-main\frontend\node_modules\postcss\lib\lazy-result.js
+:293:11)
+    at async runPostCSS (file:///D:/Sagar/expense-tracke
+r-main/frontend/node_modules/vite/dist/node/chunks/node.
+js:23873:19)
+    at async compilePostCSS (file:///D:/Sagar/expense-tr
+acker-main/frontend/node_modules/vite/dist/node/chunks/n
+ode.js:23857:6)
+    at async compileCSS (file:///D:/Sagar/expense-tracke
+r-main/frontend/node_modules/vite/dist/node/chunks/node.
+js:23787:26)[31m
+    at aggregateBindingErrorsIntoJsError (file:///D:/Sag
+ar/expense-tracker-main/frontend/node_modules/rolldown/d
+ist/shared/src-CYkh2Ybc.mjs:2659:18)
+    at unwrapBindingResult (file:///D:/Sagar/expense-tra
+cker-main/frontend/node_modules/rolldown/dist/shared/src
+-CYkh2Ybc.mjs:2634:128)
+    at #build (file:///D:/Sagar/expense-tracker-main/fro
+ntend/node_modules/rolldown/dist/shared/src-CYkh2Ybc.mjs
+:4433:34)
+    at async buildEnvironment (file:///D:/Sagar/expense-
+tracker-main/frontend/node_modules/vite/dist/node/chunks
+/node.js:33468:64)
+    at async Object.build (file:///D:/Sagar/expense-trac
+ker-main/frontend/node_modules/vite/dist/node/chunks/nod
+e.js:33871:19)
+    at async Object.buildApp (file:///D:/Sagar/expense-t
+racker-main/frontend/node_modules/vite/dist/node/chunks/
+node.js:33868:153)
+    at async CAC.<anonymous> (file:///D:/Sagar/expense-t
+racker-main/frontend/node_modules/vite/dist/node/cli.js:
+629:3)[39m

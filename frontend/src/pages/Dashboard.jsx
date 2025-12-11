@@ -3,9 +3,9 @@ import { Cell,ResponsiveContainer,Tooltip,BarChart,Bar,XAxis,YAxis,CartesianGrid
 import { Card } from '../components/ui/Card';
 import api from '../utils/axiosInstance';
 import { formatCurrency } from '../utils/format';
-import { TrendingUp,TrendingDown,Wallet,ArrowUpRight,ArrowDownRight,Activity,Eye,EyeOff } from 'lucide-react';
+import { TrendingUp,TrendingDown,Wallet,Eye,EyeOff,Calendar } from 'lucide-react';
 import {
-  calculateHealthScore,getSmartInsights,getWeeklyActivity,
+  calculateHealthScore,getSmartInsights,
   getCategoryHighlight,getMiniStats
 } from '../utils/dashboardUtils';
 import {
@@ -37,9 +37,9 @@ const CustomXAxisTick = ({ x,y,payload }) => {
 
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={10} dy={10} textAnchor="middle" fill="#64748b" fontSize={11} fontWeight={500}>
+      <text x={0} y={10} dy={10} textAnchor="middle" fill="#94a3b8" fontSize={10} fontWeight={500}>
         {lines.map((line,index) => (
-          <tspan x={0} dy={index === 0 ? 0 : 14} key={index}>
+          <tspan x={0} dy={index === 0 ? 0 : 12} key={index}>
             {line}
           </tspan>
         ))}
@@ -224,11 +224,7 @@ export default function Dashboard() {
       }
       return acc;
     },[])
-    .sort((a,b) => {
-      if (a.name === 'Other') return 1;
-      if (b.name === 'Other') return -1;
-      return b.value - a.value;
-    })
+    .reverse()
     .map((cat) => ({
       ...cat,
       color: categoryColors[cat.name] || '#cbd5e1' // Fallback color
@@ -237,64 +233,71 @@ export default function Dashboard() {
   // New Metrics Calculations
   const healthScore = calculateHealthScore(totalIncome,totalExpense);
   const smartInsight = getSmartInsights(filteredTransactions);
-  const weeklyActivity = getWeeklyActivity(filteredTransactions);
   const categoryHighlight = getCategoryHighlight(filteredTransactions);
   const miniStats = getMiniStats(filteredTransactions,totalExpense);
   const currentSavings = Math.max(0,totalIncome - totalExpense);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full min-h-[400px]">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
     </div>
   );
 
   return (
-    <div className="space-y-5 animate-fade-in pb-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/40 backdrop-blur-md p-4 rounded-3xl border border-white/50 shadow-sm">
+    <div className="space-y-6 animate-fade-in pb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface/40 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-sm">
         <div>
-          <h2 className="text-3xl font-bold text-text tracking-tight">Dashboard</h2>
-          <p className="text-text-muted mt-1 font-medium">Your financial overview</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Dashboard</h2>
+          <p className="text-text-muted mt-1 font-medium text-sm sm:text-base">Your financial overview</p>
         </div>
         {/* Month filter */}
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 bg-surface p-1.5 rounded-xl border border-border shadow-sm w-full sm:w-auto">
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-md p-1">
+          <div className="flex bg-neutral-100 rounded-lg p-1">
             <button
               onClick={() => setFilter(prev => ({ ...prev,viewMode: 'month' }))}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
             >
               Month
             </button>
             <button
               onClick={() => setFilter(prev => ({ ...prev,viewMode: 'year' }))}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
             >
               Year
             </button>
           </div>
 
+          <div className="h-6 w-px bg-border mx-1"></div>
+
           {/* Month Filter */}
           {filter.viewMode === 'month' && (
-            <input
-              type="month"
-              className="px-2 py-1 bg-transparent text-sm focus:outline-none cursor-pointer"
-              value={filter.month}
-              onChange={(e) => setFilter({ ...filter,month: e.target.value })}
-              onKeyDown={(e) => e.preventDefault()}
-            />
+            <div className="relative flex items-center">
+              <Calendar size={14} className="absolute left-2 text-text-muted pointer-events-none" />
+              <input
+                type="month"
+                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
+                value={filter.month}
+                onChange={(e) => setFilter({ ...filter,month: e.target.value })}
+                onKeyDown={(e) => e.preventDefault()}
+              />
+            </div>
           )}
 
           {/* Year Filter */}
           {filter.viewMode === 'year' && (
-            <select
-              className="px-2 py-1 bg-transparent text-sm focus:outline-none cursor-pointer"
-              value={filter.year}
-              onChange={(e) => setFilter({ ...filter,year: e.target.value })}
-            >
-              {Array.from({ length: 5 },(_,i) => new Date().getFullYear() - i).map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+            <div className="relative flex items-center">
+              <Calendar size={14} className="absolute left-2 text-text-muted pointer-events-none" />
+              <select
+                className="pl-7 pr-6 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer appearance-none"
+                value={filter.year}
+                onChange={(e) => setFilter({ ...filter,year: e.target.value })}
+              >
+                {Array.from({ length: 5 },(_,i) => new Date().getFullYear() - i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
       </div>
@@ -303,69 +306,68 @@ export default function Dashboard() {
       <MiniStatsStrip data={miniStats} />
 
       {/* Main Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5   animate-slide-up">
-        <Card className="bg-gradient-to-br from-primary to-blue-600 text-white border-none shadow-glow relative overflow-hidden col-span-1 md:col-span-2 lg:col-span-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up">
+        <Card className="bg-gradient-to-br from-primary to-blue-600 text-white border-none shadow-glow relative overflow-hidden col-span-1 md:col-span-2 lg:col-span-1 min-h-[160px]">
           <div className="absolute -bottom-4 -right-4 p-7 opacity-20 rotate-0">
             <Wallet size={100} />
           </div>
 
-          <div className="relative z-10 h-full flex flex-col justify-between">
+          <div className="relative z-10 h-full flex flex-col justify-between p-2">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-blue-100 font-medium">Total Balance</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-blue-100 font-medium text-sm uppercase tracking-wide">Total Balance</p>
                 <button
                   onClick={() => setHideBalance(!hideBalance)}
                   className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
                   aria-label="Toggle balance visibility"
                 >
-                  {hideBalance ? <EyeOff size={25} /> : <Eye size={25} />}
+                  {hideBalance ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <h3 className="text-3xl font-bold tracking-tight">
+              <h3 className="text-3xl font-bold tracking-tight truncate">
                 {hideBalance ? '₹*****' : formatCurrency(balance)}
               </h3>
             </div>
-            <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-xs text-blue-50 inline-block w-fit">
+            <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-xs text-blue-50 inline-block w-fit font-medium border border-white/10">
               {isPositiveChange ? '+' : ''}{percentageChange}% {percentageLabel}
             </div>
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-white to-emerald-50/50 border-emerald-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-emerald-100/50 rounded-2xl text-emerald-600">
+        <Card hover className="bg-gradient-to-br from-surface to-emerald-50/50 dark:bg-none dark:bg-surface border-emerald-100/50 dark:border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 min-h-[160px]">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-3 bg-emerald-100/50 rounded-2xl text-emerald-600 shadow-sm">
               <TrendingUp size={24} />
             </div>
             <button
               onClick={() => setHideIncome(!hideIncome)}
-              className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors text-emerald-600"
+              className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors text-emerald-600/70 hover:text-emerald-600"
               aria-label="Toggle income visibility"
             >
-              {hideIncome ? <EyeOff size={25} /> : <Eye size={25} />}
+              {hideIncome ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           <div>
-            <p className="text-text-muted text-sm font-semibold uppercase tracking-wider">Total Income</p>
-            <h3 className="text-2xl font-bold text-text mt-1">
+            <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Total Income</p>
+            <h3 className="text-2xl font-bold text-text mt-1 truncate">
               {hideIncome ? '₹*****' : formatCurrency(totalIncome)}
             </h3>
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-white to-rose-50/50 border-rose-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-rose-100/50 rounded-2xl text-rose-600">
+        <Card hover className="bg-gradient-to-br from-surface to-rose-50/50 dark:bg-none dark:bg-surface border-rose-100/50 dark:border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 min-h-[160px]">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-3 bg-rose-100/50 rounded-2xl text-rose-600 shadow-sm">
               <TrendingDown size={24} />
             </div>
-
           </div>
           <div>
-            <p className="text-text-muted text-sm font-semibold uppercase tracking-wider">Total Expense</p>
-            <h3 className="text-2xl font-bold text-text mt-1">{formatCurrency(totalExpense)}</h3>
+            <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Total Expense</p>
+            <h3 className="text-2xl font-bold text-text mt-1 truncate">{formatCurrency(totalExpense)}</h3>
           </div>
         </Card>
 
-        <div className="h-full">
+        <div className="h-full min-h-[160px]">
           <HealthBarWidget score={healthScore} />
         </div>
       </div>
@@ -374,14 +376,14 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
         {/* Center: Main Chart */}
-        <div className="lg:col-span-2 h-[464px]">
-          <Card className="h-full flex flex-col bg-gradient-to-b from-white to-gray-50/50 border border-gray-100 shadow-lg">
+        <div className="lg:col-span-2 h-[470px]">
+          <Card className="h-full flex flex-col bg-gradient-to-b from-surface to-neutral-50/30 dark:bg-none dark:bg-surface border-border shadow-lg">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold flex items-center gap-3 text-gray-800">
-                <div className="w-1.5 h-8 bg-gradient-to-b from-primary to-blue-600 rounded-full shadow-sm"></div>
+              <h3 className="text-lg font-bold flex items-center gap-3 text-text">
+                <div className="w-1 h-6 bg-gradient-to-b from-primary to-blue-600 rounded-full shadow-sm"></div>
                 Income & Expense Breakdown
               </h3>
-              <div className="px-3 py-1 bg-primary/5 text-primary text-xs font-semibold rounded-full border border-primary/10">
+              <div className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider rounded-full border border-primary/10">
                 Overview
               </div>
             </div>
@@ -426,9 +428,9 @@ export default function Dashboard() {
                     tickLine={false}
                     tick={<CustomXAxisTick />}
                     interval={0}
-                    height={80}
+                    height={60}
                   />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b',fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8',fontSize: 11,fontWeight: 500 }} />
                   <Tooltip
                     cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                     formatter={(value) => formatCurrency(value)}
@@ -440,9 +442,9 @@ export default function Dashboard() {
                       backdropFilter: 'blur(10px)',
                       padding: '12px 16px'
                     }}
-                    itemStyle={{ color: '#1e293b',fontWeight: 600 }}
+                    itemStyle={{ color: '#1e293b',fontWeight: 600,fontSize: '13px' }}
                   />
-                  <Bar dataKey="value" radius={[4,4,0,0]} maxBarSize={26} filter="url(#shadow)">
+                  <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={32} filter="url(#shadow)">
                     {
                       [
                         { name: 'Total Income',value: totalIncome,type: 'income' },
@@ -466,24 +468,23 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div className="mt-2 px-4 pb-4 text-[10px] text-text-muted text-center italic">
+              Note: The expense bar depends on all category-wise expenses.
+            </div>
           </Card>
         </div>
 
         {/* Right: Goal & Category */}
-        {/* Right: Goal, Category & Weekly */}
-        <div className="lg:col-span-2 flex flex-col gap-4 h-[380px]">
-          <div className="flex-1 grid grid-cols-2 gap-4">
+        <div className="lg:col-span-2 flex flex-col gap-4 h-auto lg:h-[464px]">
+          <div className="flex-1 grid grid-cols-2 gap-4 min-h-[200px]">
             <GoalTrackerWidget current={currentSavings} target={filter.viewMode === 'year' ? 0 : savingsGoal} onUpdateGoal={handleUpdateSavingsGoal} />
             <CategoryHighlightWidget category={categoryHighlight} />
           </div>
-          <div className="flex-1">
-            <WeeklyActivityWidget data={weeklyActivity} />
+          <div className="flex-1 min-h-[200px]">
+            <WeeklyActivityWidget transactions={filteredTransactions} selectedMonth={filter.month} selectedYear={filter.year} />
           </div>
         </div>
       </div>
-
-      {/* Bottom Row */}
-
     </div>
   );
 }

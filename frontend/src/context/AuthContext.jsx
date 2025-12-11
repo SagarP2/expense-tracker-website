@@ -5,14 +5,16 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user,setUser] = useState(null);
+    const [token,setToken] = useState(localStorage.getItem('token'));
     const [loading,setLoading] = useState(true);
 
     useEffect(() => {
         const checkUser = async () => {
-            const token = localStorage.getItem('token');
+            const storedToken = localStorage.getItem('token');
             const storedUser = localStorage.getItem('user');
-            if (token && storedUser) {
+            if (storedToken && storedUser) {
                 setUser(JSON.parse(storedUser));
+                setToken(storedToken);
             }
             setLoading(false);
         };
@@ -24,6 +26,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token',data.token);
         localStorage.setItem('user',JSON.stringify(data));
         setUser(data);
+        setToken(data.token);
     };
 
     const register = async (name,email,password,mobileNumber) => {
@@ -43,10 +46,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
+        setToken(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user,setUser,login,register,logout,loading,updateProfile }}>
+        <AuthContext.Provider value={{ user,token,setUser,login,register,logout,loading,updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

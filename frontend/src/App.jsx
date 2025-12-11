@@ -1,6 +1,8 @@
 import { lazy,Suspense } from 'react';
 import { BrowserRouter,Routes,Route,Navigate } from 'react-router-dom';
 import { AuthProvider,useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
 
 const Login = lazy(() => import('./pages/Login'));
@@ -13,6 +15,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const CollaborationList = lazy(() => import('./pages/Collaboration/CollaborationList'));
 const CollaborationDashboard = lazy(() => import('./pages/Collaboration/CollaborationDashboard'));
+const SettlementPay = lazy(() => import('./pages/SettlementPay'));
 const Landing = lazy(() => import('./pages/Landing'));
 
 const ProtectedRoute = ({ children }) => {
@@ -56,6 +59,7 @@ function AppRoutes() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/collaborations" element={<CollaborationList />} />
           <Route path="/collaborations/:id" element={<CollaborationDashboard />} />
+          <Route path="/settlements/:id/pay" element={<SettlementPay />} />
         </Route>
       </Routes>
     </Suspense>
@@ -66,7 +70,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ThemeProvider>
+          <NotificationProvider>
+            <AppRoutes />
+          </NotificationProvider>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

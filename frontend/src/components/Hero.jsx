@@ -1,43 +1,69 @@
 import { Link } from 'react-router-dom';
+import { Button } from './ui/Button';
 
 export default function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="py-16 md:py-24">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-        <div>
-          <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">New • Collaboration tracking</p>
-          <h1 id="hero-title" className="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight">
-            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">Track expenses</span> and share balances effortlessly
+    <section aria-labelledby="hero-title" className="py-12 md:py-20 lg:py-24">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="animate-slide-up">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+            New • Collaboration tracking
+          </span>
+          <h1 id="hero-title" className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-text leading-[1.1]">
+            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">Track expenses</span> <br className="hidden sm:block" />
+            and share balances.
           </h1>
-          <p className="mt-4 text-lg text-text-muted">Clean workflows, fast filters, and helpful insights designed for everyday use.</p>
-          <div className="mt-6 flex items-center gap-3">
-            <Link to="/register" className="px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary/50">Get started</Link>
-            <Link to="/login" className="px-6 py-3 rounded-xl border border-gray-200 text-text font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/20">Sign in</Link>
+          <p className="mt-6 text-lg text-text-secondary max-w-lg leading-relaxed">
+            Clean workflows, fast filters, and helpful insights designed for everyday use. Manage your personal and shared finances in one place.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
+            <Link to="/register" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto shadow-xl shadow-primary/20">Get started</Button>
+            </Link>
+            <Link to="/login" className="w-full sm:w-auto">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto">Sign in</Button>
+            </Link>
           </div>
-          <div className="mt-6 flex items-center gap-6 text-sm text-text-muted">
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-success"></span> No setup required</div>
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-primary"></span> Secure by design</div>
+          <div className="mt-8 flex items-center gap-6 text-sm font-medium text-text-muted">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+              No setup required
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(37,99,235,0.5)]"></span>
+              Secure by design
+            </div>
           </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/20 blur-3xl rounded-full" aria-hidden="true" />
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/20 blur-3xl rounded-full" aria-hidden="true" />
-          <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-soft">
-            <svg role="img" aria-label="Analytics preview" viewBox="0 0 400 300" className="w-full h-full">
-              <defs>
-                <linearGradient id="g" x1="0" x2="1">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="100%" stopColor="#60a5fa" />
-                </linearGradient>
-              </defs>
-              <rect width="400" height="300" fill="#f8fafc" />
-              <rect x="24" y="24" width="352" height="60" rx="12" fill="#ffffff" stroke="#e2e8f0" />
-              <rect x="40" y="40" width="200" height="16" rx="8" fill="#e2e8f0" />
-              <rect x="24" y="100" width="352" height="160" rx="12" fill="#ffffff" stroke="#e2e8f0" />
-              <polyline points="40,220 120,180 200,210 280,150 360,170" fill="none" stroke="#2563eb" strokeWidth="4" />
-              <polyline points="40,230 120,190 200,220 280,160 360,185" fill="none" stroke="#ef4444" strokeWidth="3" />
-            </svg>
+        <div className="relative animate-fade-in delay-100 hidden md:block">
+          <div className="absolute -top-20 -left-20 w-64 h-64 bg-primary/20 blur-[100px] rounded-full mix-blend-multiply dark:hidden" aria-hidden="true" />
+          <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-500/20 blur-[100px] rounded-full mix-blend-multiply dark:hidden" aria-hidden="true" />
+          <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border border-border bg-surface shadow-2xl transform hover:scale-[1.02] transition-transform duration-500">
+            {/* Abstract UI Representation */}
+            <div className="absolute inset-0 bg-gradient-to-br from-surface to-surface-highlight dark:bg-none dark:bg-surface p-6 flex flex-col gap-4">
+              {/* Mock Header */}
+              <div className="flex items-center justify-between">
+                <div className="w-32 h-8 bg-neutral-100 rounded-lg animate-pulse"></div>
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 bg-neutral-100 rounded-full"></div>
+                  <div className="w-8 h-8 bg-neutral-100 rounded-full"></div>
+                </div>
+              </div>
+              {/* Mock Chart */}
+              <div className="flex-1 bg-white rounded-xl border border-neutral-100 p-4 shadow-sm flex items-end justify-between gap-2">
+                <div className="w-full bg-primary/10 rounded-t-lg h-[40%]"></div>
+                <div className="w-full bg-primary/20 rounded-t-lg h-[70%]"></div>
+                <div className="w-full bg-primary/40 rounded-t-lg h-[50%]"></div>
+                <div className="w-full bg-primary/60 rounded-t-lg h-[80%]"></div>
+                <div className="w-full bg-primary rounded-t-lg h-[60%]"></div>
+              </div>
+              {/* Mock List */}
+              <div className="space-y-3">
+                <div className="h-12 bg-white rounded-xl border border-neutral-100 shadow-sm"></div>
+                <div className="h-12 bg-white rounded-xl border border-neutral-100 shadow-sm"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

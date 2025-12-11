@@ -1,55 +1,60 @@
 const User = require('../models/User');
+const TempUser = require('../models/TempUser');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendEmail } = require('../services/emailService');
+const { generateUniqueUsername } = require('../helpers/usernameHelper');
 
 const generateToken = (id) => {
     return jwt.sign({ id },process.env.JWT_SECRET,{ expiresIn: '30d' });
 };
 
-const crypto = require('crypto');
-const { sendEmail } = require('../services/emailService');
-
 const registerUser = async (req,res) => {
     const { name,email,password,mobileNumber } = req.body;
-    const userExists = await User.findOne({ email });
 
+    // Check if user is already registered and verified
+    const userExists = await User.findOne({ email });
     if (userExists) {
-        return res.status(400).json({ message: 'User already exists' });
+        res.status(400);
+        throw new Error('User already exists');
+    }
+
+    // Check if there is a pending registration
+    const tempUserExists = await TempUser.findOne({ email });
+    if (tempUserExists) {
+        // Option: Delete old pending and create new, or tell them to check email.
+        // Let's delete old and create new to allow re-sending/updating details
+        await TempUser.findOneAndDelete({ email });
     }
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = Date.now() + 30 * 60 * 1000; // 30 mins
+    // const verificationExpires = Date.now() + 30 * 60 * 1000; // Handled by TTL in TempUser
 
-    const user = await User.create({
+    // Save to TempUser collection
+    const tempUser = await TempUser.create({
         name,
         email,
-        password,
+        username: await generateUniqueUsername(User,name,mobileNumber), // Reserve username concept
+        password, // Pre-save hook will hash it
         mobileNumber,
-        verificationToken,
-        verificationExpires,
-        emailVerified: false
+        verificationToken
     });
 
-    if (user) {
-        // Send verification email
-        try {
-            await sendEmail(user.email,'verification',verificationToken);
-        } catch (error) {
-            console.error('Failed to send verification email:',error);
-            // Consider deleting user or handling error gracefully
-        }
+    if (tempUser) {
+        // Send verification email asynchronously
+        sendEmail(tempUser.email,'verification',verificationToken)
+            .catch(error => {
+                console.error('Failed to send verification email:',error);
+            });
 
         res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            mobileNumber: user.mobileNumber,
-            token: generateToken(user._id),
             message: 'Registration successful. Please check your email to verify your account.',
             ...(process.env.NODE_ENV === 'development' && { verificationToken })
         });
     } else {
-        res.status(400).json({ message: 'Invalid user data' });
+        res.status(400);
+        throw new Error('Invalid user data');
     }
 };
 
@@ -59,55 +64,114 @@ const loginUser = async (req,res) => {
 
     if (user && (await user.matchPassword(password))) {
         if (!user.emailVerified) {
-            return res.status(403).json({ message: 'Please verify your email first.' });
+            res.status(403);
+            throw new Error('Please verify your email first.');
         }
 
         res.json({
             _id: user._id,
             name: user.name,
             email: user.email,
+            username: user.username,
             mobileNumber: user.mobileNumber,
             token: generateToken(user._id),
         });
     } else {
-        res.status(401).json({ message: 'Invalid email or password' });
+        res.status(401);
+        throw new Error('Invalid email or password');
     }
 };
 
 const verifyEmail = async (req,res) => {
     const { token } = req.query;
 
-    try {
-        const user = await User.findOne({
-            verificationToken: token,
-            verificationExpires: { $gt: Date.now() }
-        });
+    const tempUser = await TempUser.findOne({ verificationToken: token });
 
-        if (!user) {
-            // Redirect to error page
-            return res.redirect(`${process.env.FRONTEND_URL}/verify-error?reason=invalid`);
-        }
-
-        user.emailVerified = true;
-        user.verificationToken = undefined;
-        user.verificationExpires = undefined;
-        await user.save();
-
-        // Generate JWT token for auto-login
-        const authToken = generateToken(user._id);
-        const userData = encodeURIComponent(JSON.stringify({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            mobileNumber: user.mobileNumber
-        }));
-
-        // Redirect to success page with token for auto-login
-        res.redirect(`${process.env.FRONTEND_URL}/verified-success?token=${authToken}&user=${userData}`);
-    } catch (error) {
-        console.error('Email verification error:',error);
-        res.redirect(`${process.env.FRONTEND_URL}/verify-error?reason=server`);
+    if (!tempUser) {
+        return res.redirect(`${process.env.FRONTEND_URL}/verify-error?reason=invalid`);
     }
+
+    // Move data from TempUser to User
+    // NOTE: TempUser.password is already hashed. We use insertOne to bypass Mongoose pre-save hook 
+    // which would otherwise double-hash the password.
+    const userData = {
+        name: tempUser.name,
+        email: tempUser.email,
+        username: tempUser.username,
+        password: tempUser.password, // Already hashed
+        mobileNumber: tempUser.mobileNumber,
+        savingsGoal: 0,
+        emailVerified: true,
+        monthlyGoalStatus: { isReachedNotified: false,isPendingNotified: false },
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    // Direct MongoDB insert to bypass middleware
+    const result = await User.collection.insertOne(userData);
+    const newUserId = result.insertedId;
+
+    await TempUser.findOneAndDelete({ verificationToken: token });
+
+    // Generate token for auto-login
+    const authToken = generateToken(newUserId);
+
+    // Redirect to simple success page with token
+    res.redirect(`${process.env.FRONTEND_URL}/verified-success?token=${authToken}`);
 };
 
-module.exports = { registerUser,loginUser,verifyEmail };
+// Check verification status (for polling)
+const checkVerifyStatus = async (req,res) => {
+    const { email } = req.query;
+
+    if (!email) {
+        res.status(400);
+        throw new Error('Email is required');
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    res.json({ verified: user.emailVerified });
+};
+
+// Auto-login endpoint (only for verified users)
+const autoLogin = async (req,res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        res.status(400);
+        throw new Error('Email is required');
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    if (!user.emailVerified) {
+        res.status(403);
+        throw new Error('Email not verified');
+    }
+
+    // Generate token and return user data
+    const token = generateToken(user._id);
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        mobileNumber: user.mobileNumber,
+        token
+    });
+};
+
+module.exports = { registerUser,loginUser,verifyEmail,checkVerifyStatus,autoLogin };
+

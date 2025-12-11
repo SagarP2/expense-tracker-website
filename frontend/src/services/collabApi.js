@@ -60,9 +60,27 @@ export const getBalanceSummary = async (id,params) => {
     return data;
 };
 
-// Settle payment
+// Settle payment (Direct Pay)
 export const settlePayment = async (id,paymentData) => {
     const response = await api.post(`/collab/${id}/settlement/pay`,paymentData);
+    return response.data;
+};
+
+// Request payment
+export const requestSettlement = async (id,paymentData) => {
+    const response = await api.post(`/collab/${id}/settlement/request`,paymentData);
+    return response.data;
+};
+
+// Accept settlement request
+export const acceptSettlementRequest = async (id) => {
+    const response = await api.post(`/collab/${id}/settlement/accept`);
+    return response.data;
+};
+
+// Reject settlement request
+export const rejectSettlementRequest = async (id) => {
+    const response = await api.post(`/collab/${id}/settlement/reject`);
     return response.data;
 };
 

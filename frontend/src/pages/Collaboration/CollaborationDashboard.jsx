@@ -1,10 +1,13 @@
-import { useState,useEffect,useRef } from 'react';
+import { useState,useEffect,useRef,useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useParams,useNavigate } from 'react-router-dom';
+import { useNotifications } from '../../context/NotificationContext';
+import { useParams,useNavigate,useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { TableResponsive } from '../../components/ui/TableResponsive';
 import {
   getCollaboration,
   getCollabTransactions,
@@ -15,16 +18,21 @@ import {
   settlePayment,
   requestDeletion,
   acceptDeletion,
-  rejectDeletion
+  rejectDeletion,
+  requestSettlement,
+  acceptSettlementRequest,
+  rejectSettlementRequest
 } from '../../services/collabApi';
 import { AlertModal } from '../../components/ui/AlertModal';
 import { PaymentModal } from '../../components/PaymentModal';
+import { MiniStatsStrip } from '../../components/DashboardWidgets';
 
 // ... (inside component)
 
 
 import { formatCurrency } from '../../utils/format';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { getMiniStats } from '../../utils/dashboardUtils';
 import {
   Plus,
   Edit,
@@ -42,7 +50,8 @@ import {
   Users,
   ArrowUpRight,
   ArrowDownRight,
-  X
+  X,
+  Wallet
 } from 'lucide-react';
 import { PieChart,Pie,Cell,ResponsiveContainer,Tooltip } from 'recharts';
 import clsx from 'clsx';
@@ -98,7 +107,9 @@ export default function CollaborationDashboard() {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const { socket } = useNotifications();
 
   // Refs must be declared before useState hooks
   const userASettlementRef = useRef(null);
@@ -115,6 +126,7 @@ export default function CollaborationDashboard() {
   const [deleteDialog,setDeleteDialog] = useState({ isOpen: false,id: null });
   const [showPaymentModal,setShowPaymentModal] = useState(false);
   const [paymentLoading,setPaymentLoading] = useState(false);
+  const [deletionLoading,setDeletionLoading] = useState(false);
   const [filter,setFilter] = useState({
     userId: '',
     search: '',
@@ -146,7 +158,7 @@ export default function CollaborationDashboard() {
     income: ['Salary','Home','Other']
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const params = { month: filter.month };
@@ -158,6 +170,7 @@ export default function CollaborationDashboard() {
       setCollaboration(collabData);
       setTransactions(transactionsData);
       setBalance(balanceData);
+      setError(null);
     } catch (error) {
       console.error('Failed to fetch data',error);
       // If collaboration not found (deleted), navigate back to list
@@ -169,11 +182,11 @@ export default function CollaborationDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  },[id,filter.month,navigate]);
 
   useEffect(() => {
     fetchData();
-  },[id,filter.month]);
+  },[fetchData]);
 
   // Poll for collaboration status when deletion is requested
   useEffect(() => {
@@ -184,7 +197,21 @@ export default function CollaborationDashboard() {
     },3000); // Check every 3 seconds
 
     return () => clearInterval(interval);
-  },[collaboration?.deletionRequest?.requestedBy]);
+  },[collaboration?.deletionRequest?.requestedBy,fetchData]);
+
+  // Check for navigation state to open Payment Modal
+  useEffect(() => {
+    if (location.state?.openPaymentModal) {
+      setShowPaymentModal(true);
+      // Clean up state to prevent reopening on refresh (optional, but good practice)
+      // navigate(location.pathname, { replace: true, state: {} });
+      // Actually, clearing state might be tricky if we want to keep other state.
+      // For now, just opening it is enough.
+
+      // Clear the state without reloading
+      window.history.replaceState({},document.title)
+    }
+  },[location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -289,8 +316,9 @@ export default function CollaborationDashboard() {
     setShowModal(true);
   };
 
-  const handlePayment = async (paymentMethod,customAmount) => {
+  const handlePayment = async (paymentMethod,customAmount,paymentReason) => {
     if (!displayBalance || displayBalance.owedAmount === 0) return;
+    if (paymentLoading) return; // Prevent duplicate submissions
 
     setPaymentLoading(true);
     try {
@@ -306,10 +334,14 @@ export default function CollaborationDashboard() {
         payerId: payerUser.id,
         receiverId: receiverUser.id,
         amount: customAmount || displayBalance.owedAmount, // Use custom amount if provided
-        method: paymentMethod
+        method: paymentMethod,
+        reason: paymentReason // Add reason for partial payments
       };
 
       const response = await settlePayment(id,paymentData);
+
+      // Close modal first
+      setShowPaymentModal(false);
 
       // Show success message
       setAlertState({
@@ -319,21 +351,8 @@ export default function CollaborationDashboard() {
         type: 'success'
       });
 
-      // Update state immediately with returned data
-      if (response.balance) {
-        setBalance(response.balance);
-      }
-
-      if (response.transactions && response.transactions.length > 0) {
-        setTransactions(prev => [...response.transactions,...prev]);
-      }
-
-      // Auto reload page after 2 seconds
-      setTimeout(() => {
-        window.location.reload();
-      },2000);
-
-      setShowPaymentModal(false);
+      // Refresh data instead of reloading page
+      await fetchData();
     } catch (error) {
       console.error('Failed to settle payment',error);
       setAlertState({
@@ -349,6 +368,9 @@ export default function CollaborationDashboard() {
 
   // Deletion workflow handlers
   const handleRequestDeletion = async () => {
+    if (deletionLoading) return; // Prevent duplicate requests
+
+    setDeletionLoading(true);
     try {
       await requestDeletion(id);
       setAlertState({
@@ -358,7 +380,7 @@ export default function CollaborationDashboard() {
         type: 'success'
       });
       // Refresh collaboration data
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error('Failed to request deletion',error);
       setAlertState({
@@ -367,32 +389,41 @@ export default function CollaborationDashboard() {
         message: error.response?.data?.message || 'Failed to request deletion.',
         type: 'error'
       });
+    } finally {
+      setDeletionLoading(false);
     }
   };
 
   const handleAcceptDeletion = async () => {
+    if (deletionLoading) return; // Prevent duplicate requests
+
+    setDeletionLoading(true);
     try {
       await acceptDeletion(id);
       setAlertState({
         isOpen: true,
         title: 'Collaboration Deleted',
-        message: 'Collaboration has been deleted successfully.',
+        message: 'Collaboration has been deleted successfully. Redirecting...',
         type: 'success'
       });
-      // Navigate back to collaborations list
       setTimeout(() => navigate('/collaborations'),2000);
     } catch (error) {
       console.error('Failed to accept deletion',error);
       setAlertState({
         isOpen: true,
         title: 'Action Failed',
-        message: error.response?.data?.message || 'Failed to delete collaboration.',
+        message: error.response?.data?.message || 'Failed to delete collaboration capture.',
         type: 'error'
       });
+    } finally {
+      setDeletionLoading(false);
     }
   };
 
   const handleRejectDeletion = async () => {
+    if (deletionLoading) return; // Prevent duplicate requests
+
+    setDeletionLoading(true);
     try {
       await rejectDeletion(id);
       setAlertState({
@@ -402,7 +433,7 @@ export default function CollaborationDashboard() {
         type: 'success'
       });
       // Refresh collaboration data
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error('Failed to reject deletion',error);
       setAlertState({
@@ -411,6 +442,61 @@ export default function CollaborationDashboard() {
         message: error.response?.data?.message || 'Failed to reject deletion.',
         type: 'error'
       });
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
+  // Settlement Request Handlers
+  const handleRequestSettlement = async () => {
+    if (!displayBalance || displayBalance.owedAmount <= 0) return;
+    setLoading(true);
+    try {
+      await requestSettlement(id,{
+        amount: displayBalance.owedAmount,
+        method: 'UPI' // Default or allow selection if needed
+      });
+      setAlertState({
+        isOpen: true,
+        title: 'Request Sent',
+        message: `Payment request of ${formatCurrency(displayBalance.owedAmount)} sent successfully.`,
+        type: 'success'
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to request settlement',error);
+      setAlertState({
+        isOpen: true,
+        title: 'Request Failed',
+        message: error.response?.data?.message || 'Failed to send request.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptSettlement = async () => {
+    setLoading(true);
+    try {
+      await acceptSettlementRequest(id);
+      setAlertState({
+        isOpen: true,
+        title: 'Payment Successful',
+        message: 'Settlement request accepted and payment recorded.',
+        type: 'success'
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to accept settlement',error);
+      setAlertState({
+        isOpen: true,
+        title: 'Payment Failed',
+        message: error.response?.data?.message || 'Failed to process payment.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -456,6 +542,165 @@ export default function CollaborationDashboard() {
       userBSettlementRef.current.scrollTop = userBSettlementRef.current.scrollHeight;
     }
   },[transactions,filter.month]); // Trigger when transactions or month changes
+
+  // Columns for TableResponsive
+  const columns = [
+    {
+      header: 'Date',
+      accessor: 'date',
+      className: 'text-left pl-6',
+      render: (t) => (
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-neutral-100 rounded-lg text-text-muted">
+            <Calendar size={16} />
+          </div>
+          <span className="text-sm font-medium text-text">
+            {new Date(t.date).toLocaleDateString('en-GB',{ weekday: 'short' }).toUpperCase()}, {new Date(t.date).toLocaleDateString('en-GB').replace(/\//g,'-')}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: 'Description',
+      accessor: 'description',
+      className: 'text-left',
+      render: (t) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-text truncate max-w-[200px]">{t.description || (t.category === '__other__' ? (t.customCategory ?? t.category) : t.category)}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Category',
+      accessor: 'category',
+      className: 'text-left',
+      render: (t) => {
+        const displayCategory = t.category === '__other__' ? (t.customCategory ?? t.category) : t.category;
+        return (
+          <Badge variant="secondary" className="bg-neutral-50 text-text-muted border-neutral-200">
+            {displayCategory}
+          </Badge>
+        );
+      }
+    },
+    {
+      header: 'Amount',
+      accessor: 'amount',
+      className: 'text-left',
+      render: (t) => (
+        <span className={clsx(
+          "flex items-center gap-1 font-bold",
+          t.type === 'income' ? 'text-success' : 'text-danger'
+        )}>
+          {t.type === 'income' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+          {formatCurrency(t.amount)}
+        </span>
+      )
+    },
+    {
+      header: 'Paid By',
+      accessor: 'userId.name',
+      className: 'text-left',
+      render: (t) => (
+        <span className="text-sm text-text-muted font-medium">
+          {t.userId?.name}
+        </span>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      className: 'text-right pr-6',
+      render: (t) => (
+        <div className="flex items-center justify-end gap-2">
+          {t.category !== 'Settlement' && t.category !== 'Settlement Received' && (
+            <>
+              <Button variant="ghost" size="icon" onClick={() => handleEdit(t)} className="h-8 w-8 text-text-muted hover:text-primary hover:bg-primary/10">
+                <Edit size={16} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ isOpen: true,id: t._id })} className="h-8 w-8 text-text-muted hover:text-danger hover:bg-danger/10">
+                <Trash2 size={16} />
+              </Button>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const renderMobileItem = (t) => {
+    const displayCategory = t.category === '__other__' ? (t.customCategory ?? t.category) : t.category;
+    return (
+      <Card className="p-4 mb-3 hover:bg-neutral-50/50 transition-colors border-neutral-100 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className={clsx(
+              "w-10 h-10 rounded-xl flex items-center justify-center",
+              t.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+            )}>
+              {t.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+            </div>
+            <div>
+              <p className="font-semibold text-text text-sm">{t.description || displayCategory}</p>
+              <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
+                <Calendar size={10} />
+                {new Date(t.date).toLocaleDateString('en-GB',{ weekday: 'short' }).toUpperCase()}, {new Date(t.date).toLocaleDateString('en-GB').replace(/\//g,'-')}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className={clsx(
+              "font-bold text-sm block",
+              t.type === 'income' ? 'text-success' : 'text-danger'
+            )}>
+              {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+            </span>
+            <span className="text-xs text-text-muted block mt-0.5">by {t.userId?.name}</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+          <Badge variant="outline" className="text-xs font-normal bg-neutral-50 text-text-muted border-neutral-200">
+            {displayCategory}
+          </Badge>
+          <div className="flex gap-2">
+            {t.category !== 'Settlement' && t.category !== 'Settlement Received' && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(t)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50">
+                  <Edit size={16} />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setDeleteDialog({ isOpen: true,id: t._id })} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50">
+                  <Trash2 size={16} />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  // Listen for deletion event
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = (notif) => {
+      if (notif.type === 'COLLAB_DELETED' && notif.payload.collabId === id) {
+        setAlertState({
+          isOpen: true,
+          title: 'Collaboration Deleted',
+          message: 'This collaboration was deleted by the other user.',
+          type: 'info'
+        });
+        setTimeout(() => navigate('/collaborations'),2000);
+      }
+    };
+
+    socket.on('notification:new',handleNotification);
+
+    return () => {
+      socket.off('notification:new',handleNotification);
+    };
+  },[socket,id,navigate]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -620,31 +865,35 @@ export default function CollaborationDashboard() {
     { name: balance.userB.name,value: displayBalance.userB.total_expense,color: '#ef4444' }
   ].filter(d => d.value > 0);
 
+  // Calculate mini stats for the strip widget
+  const miniStats = getMiniStats(filteredTransactions,displayBalance.total_expense);
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-surface/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-sm">
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate('/collaborations')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-full hover:bg-surface-highlight"
           >
             <ArrowLeft size={24} />
-          </button>
+          </Button>
           <div>
-            <h2 className="text-3xl font-bold text-text flex items-center gap-3">
-              <Users size={32} className="text-primary" />
+            <h2 className="text-2xl sm:text-3xl font-bold text-text flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                <Users size={24} />
+              </div>
               Shared with {otherUser?.name}
             </h2>
-            <div className="flex items-center gap-2 mt-1 text-text-muted">
-              <p>{otherUser?.email}</p>
-              {otherUser?.mobileNumber && (
-                <p className="flex items-center ml-5">• {otherUser?.mobileNumber}</p>
-              )}
+            <div className="flex items-center gap-3 mt-2 text-text-muted text-sm sm:text-base">
+              <p className="bg-surface/50">{otherUser?.email}</p>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
           <Button onClick={() => {
             setEditingId(null);
             setLockedType('income');
@@ -657,7 +906,7 @@ export default function CollaborationDashboard() {
               date: new Date().toISOString().split('T')[0],
             });
             setShowModal(true);
-          }} className="flex items-center gap-2 shadow-glow bg-success hover:bg-success/90 text-white">
+          }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-success hover:bg-success/90 text-white border-none">
             <Plus size={20} />
             Add Income
           </Button>
@@ -673,21 +922,40 @@ export default function CollaborationDashboard() {
               date: new Date().toISOString().split('T')[0],
             });
             setShowModal(true);
-          }} className="flex items-center gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white">
+          }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white border-none">
             <Plus size={20} />
             Add Expense
           </Button>
-          {/* Delete Collaboration Button */}
-          {!collaboration.deletionRequest?.requestedBy && (
-            <div className="flex justify-end">
-              <Button
-                onClick={handleRequestDeletion}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
-              >
-                <Trash2 size={18} />
-                Delete Collaboration
-              </Button>
-            </div>
+          {/* Pay / Request Buttons (Moved from Settlement Card) */}
+          {displayBalance.owedAmount > 0 && (
+            <>
+              {/* Pay Now Button */}
+              {user && displayBalance.payer && displayBalance.payer.id === user._id && (
+                <Button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-blue-600 hover:bg-blue-700 text-white border-none"
+                >
+                  <Wallet size={18} />
+                  Pay Now
+                </Button>
+              )}
+              {/* Request Payment Button */}
+              {user && displayBalance.receiver && displayBalance.receiver.id === user._id && (
+                <Button
+                  onClick={handleRequestSettlement}
+                  disabled={collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01}
+                  className={`flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-blue-600 hover:bg-blue-700 text-white border-none ${collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
+                    ? 'opacity-70 cursor-not-allowed'
+                    : ''
+                    }`}
+                >
+                  <Wallet size={18} />
+                  {collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
+                    ? 'Request Sent'
+                    : 'Request Payment'}
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -727,72 +995,98 @@ export default function CollaborationDashboard() {
         </Card>
       )}
 
+      {/* Mini Stats Strip */}
+      <MiniStatsStrip data={miniStats} />
+
+
+
 
 
       {/* 1. Income Summary Cards - Only show if there is income */}
       {displayBalance.total_income > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-success to-green-600 text-white border-none shadow-glow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-green-100 font-medium">Total Income</p>
-              <TrendingUp size={20} className="text-green-100" />
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <TrendingUp size={64} />
             </div>
-            <h3 className="text-3xl font-bold">{formatCurrency(displayBalance.total_income)}</h3>
+            <div className="flex flex-col justify-between h-full relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-white/20 dark:bg-surface-highlight rounded-lg backdrop-blur-sm">
+                  <TrendingUp size={20} className="text-white dark:text-emerald-500" />
+                </div>
+                <p className="text-emerald-50 dark:text-text-muted font-medium">Total Income</p>
+              </div>
+              <h3 className="text-3xl font-bold tracking-tight">{formatCurrency(displayBalance.total_income)}</h3>
+            </div>
           </Card>
 
-          <Card hover className="border-l-4 border-l-green-500">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-text-muted font-medium">{displayBalance.userA.name}'s Income</p>
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+          <Card hover className="border-l-4 border-l-emerald-500 bg-surface">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-text-muted font-medium text-sm">{displayBalance.userA.name}'s Income</p>
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
                 {displayBalance.userA.name.charAt(0)}
               </div>
             </div>
             <h3 className="text-2xl font-bold text-text">{formatCurrency(displayBalance.userA.total_income)}</h3>
           </Card>
 
-          <Card hover className="border-l-4 border-l-green-500">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-text-muted font-medium">{displayBalance.userB.name}'s Income</p>
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+          <Card hover className="border-l-4 border-l-emerald-500 bg-surface">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-text-muted font-medium text-sm">{displayBalance.userB.name}'s Income</p>
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
                 {displayBalance.userB.name.charAt(0)}
               </div>
             </div>
             <h3 className="text-2xl font-bold text-text">{formatCurrency(displayBalance.userB.total_income)}</h3>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-none shadow-glow">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-indigo-100 font-medium">Total Savings</p>
-              <PieChartIcon size={20} className="text-indigo-100" />
+          <Card className="bg-gradient-to-br from-violet-500 to-purple-600 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <PieChartIcon size={64} />
             </div>
-            <h3 className="text-3xl font-bold">{formatCurrency(displayBalance.total_savings)}</h3>
-            <p className="text-sm text-indigo-100 mt-2">Income - Expenses</p>
+            <div className="flex flex-col justify-between h-full relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-white/20 dark:bg-surface-highlight rounded-lg backdrop-blur-sm">
+                  <PieChartIcon size={20} className="text-white dark:text-violet-500" />
+                </div>
+                <p className="text-violet-100 dark:text-text-muted font-medium">Total Savings</p>
+              </div>
+              <h3 className="text-3xl font-bold tracking-tight">{formatCurrency(displayBalance.total_savings)}</h3>
+              <p className="text-xs text-violet-100 dark:text-text-muted mt-1 opacity-80">Income - Expenses</p>
+            </div>
           </Card>
         </div>
       )}
 
       {/* 2. Expense Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-danger to-danger text-white border-none shadow-glow">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-blue-100 font-medium">Total Expenses</p>
-            <TrendingDown size={20} className="text-blue-100" />
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-rose-500 to-pink-600 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden p-5">
+          <div className="absolute top-0 right-0 p-4 opacity-20">
+            <TrendingDown size={64} />
           </div>
-          <h3 className="text-3xl font-bold">{formatCurrency(displayBalance.total_expense)}</h3>
-          <p className="text-sm text-blue-100 mt-2">Split equally: {formatCurrency(displayBalance.amount_each_should_pay)}</p>
+          <div className="flex flex-col justify-between h-full relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-2 bg-white/20 dark:bg-surface-highlight rounded-lg backdrop-blur-sm">
+                <TrendingDown size={18} className="text-white dark:text-rose-500" />
+              </div>
+              <p className="text-rose-100 dark:text-text-muted font-medium">Total Expenses</p>
+            </div>
+            <h3 className="text-3xl font-bold tracking-tight">{formatCurrency(displayBalance.total_expense)}</h3>
+            <p className="text-xs text-rose-100 dark:text-text-muted mt-1 opacity-80">Split equally: {formatCurrency(displayBalance.amount_each_should_pay)}</p>
+          </div>
         </Card>
 
-        <Card hover className="border-l-4 border-l-blue-500">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-text-muted font-medium">{displayBalance.userA.name}'s Expense</p>
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+        <Card hover className="border-l-4 border-l-blue-500 bg-surface p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-text-muted font-medium text-sm">{displayBalance.userA.name}'s Expense</p>
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
               {displayBalance.userA.name.charAt(0)}
             </div>
           </div>
           <h3 className="text-2xl font-bold text-text">{formatCurrency(displayBalance.userA.total_expense)}</h3>
           <p className={clsx(
-            "text-sm mt-2 font-medium",
-            displayBalance.userA.balance > 0 ? "text-success" : displayBalance.userA.balance < 0 ? "text-danger" : "text-text-muted"
+            "text-xs mt-2 font-medium px-2 py-1 rounded-lg w-fit",
+            displayBalance.userA.balance > 0 ? "text-success bg-success/10" : displayBalance.userA.balance < 0 ? "text-danger bg-danger/10" : "text-text-muted bg-neutral-100"
           )}>
             {displayBalance.userA.balance > 0 ? `Gets back ${formatCurrency(Math.abs(displayBalance.userA.balance))}` :
               displayBalance.userA.balance < 0 ? `Pays ${formatCurrency(Math.abs(displayBalance.userA.balance))}` :
@@ -800,17 +1094,17 @@ export default function CollaborationDashboard() {
           </p>
         </Card>
 
-        <Card hover className="border-l-4 border-l-red-500">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-text-muted font-medium">{displayBalance.userB.name}'s Expense</p>
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+        <Card hover className="border-l-4 border-l-rose-500 bg-surface p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-text-muted font-medium text-sm">{displayBalance.userB.name}'s Expense</p>
+            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-sm">
               {displayBalance.userB.name.charAt(0)}
             </div>
           </div>
           <h3 className="text-2xl font-bold text-text">{formatCurrency(displayBalance.userB.total_expense)}</h3>
           <p className={clsx(
-            "text-sm mt-2 font-medium",
-            displayBalance.userB.balance > 0 ? "text-success" : displayBalance.userB.balance < 0 ? "text-danger" : "text-text-muted"
+            "text-xs mt-2 font-medium px-2 py-1 rounded-lg w-fit",
+            displayBalance.userB.balance > 0 ? "text-success bg-success/10" : displayBalance.userB.balance < 0 ? "text-danger bg-danger/10" : "text-text-muted bg-neutral-100"
           )}>
             {displayBalance.userB.balance > 0 ? `Gets back ${formatCurrency(Math.abs(displayBalance.userB.balance))}` :
               displayBalance.userB.balance < 0 ? `Pays ${formatCurrency(Math.abs(displayBalance.userB.balance))}` :
@@ -818,9 +1112,9 @@ export default function CollaborationDashboard() {
           </p>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-glow relative overflow-hidden">
-          <div className="absolute top-5 right-5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+        <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden p-5">
+          <div className="absolute top-5 right-5 opacity-20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
               <path d="m11 17 2 2a1 1 0 1 0 3-3" />
               <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
               <path d="m21 3 1 11h-2" />
@@ -828,39 +1122,23 @@ export default function CollaborationDashboard() {
               <path d="M3 4h8" />
             </svg>
           </div>
-          <div className="relative z-10">
-            <p className="text-blue-100 font-medium mb-2">Settlement</p>
-            <p className="text-lg font-bold text-white leading-tight">
-              {displayBalance.final_statement}
-            </p>
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div>
+              <p className="text-blue-100 dark:text-text-muted font-medium mb-1.5">Settlement</p>
+              <p className="text-xl font-bold text-white dark:text-text leading-tight">
+                {displayBalance.final_statement}
+              </p>
+            </div>
             {displayBalance.owedAmount > 0 && (
-              <div className="flex items-center gap-5" >
-                <p className="text-blue-100 mt-2">
+              <div className="mt-3" >
+                <p className="text-blue-100 dark:text-text-muted text-sm mb-2">
                   Amount: {formatCurrency(displayBalance.owedAmount)}
                 </p>
-                {/* Show Pay button only if current user is the payer */}
-                {user && displayBalance.payer && displayBalance.payer.id === user._id && (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="mt-1 px-3 py-1 bg-white text-primary font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-md"
-                  >
-                    Pay Now
-                  </button>
-                )}
-
-                {/* Show Request Payment button only if current user is the receiver */}
-                {user && displayBalance.receiver && displayBalance.receiver.id === user._id && (
-                  <button
-                    onClick={() => setAlertState({
-                      isOpen: true,
-                      title: 'Request Sent',
-                      message: `Payment request sent to ${displayBalance.payer.name}`,
-                      type: 'success'
-                    })}
-                    className="mt-1 px-3 py-1 bg-white text-primary font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-md"
-                  >
-                    Request
-                  </button>
+                {/* Show Pay/Request buttons moved to header */}
+                {collaboration.settlementRequest?.requestedBy && (
+                  <p className="text-xs text-blue-200 mb-1">
+                    Request Pending: {formatCurrency(collaboration.settlementRequest.amount)}
+                  </p>
                 )}
               </div>
             )}
@@ -887,7 +1165,7 @@ export default function CollaborationDashboard() {
       />
 
       {/* 3. Savings Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
         <Card className="p-4 border border-gray-100">
           <h4 className="text-lg font-bold text-text mb-3 flex items-center gap-2">
             <div className="w-1 h-5 bg-primary rounded-full"></div>
@@ -965,274 +1243,181 @@ export default function CollaborationDashboard() {
 
       {/* Transactions */}
       <div className="w-full">
-        {/* Collaboration Transactions */}
-        <Card className="w-full flex flex-col">
+        <Card className="w-full flex flex-col bg-surface border-border shadow-card">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h3 className="text-lg font-bold flex items-center gap-2">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-text">
               <div className="w-1 h-6 bg-primary rounded-full"></div>
               Collaboration Transactions
             </h3>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-white p-4 rounded-xl border border-gray-100 mb-6">
-            <div className="flex flex-wrap gap-3 flex-1">
+          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-surface-highlight/30 p-4 rounded-2xl border border-border mb-6">
+            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full xl:w-auto">
               {/* User Filter */}
-              <select
-                className="px-3 py-2 rounded-lg border border-gray-200 bg-white/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
-                value={filter.userId}
-                onChange={(e) => setFilter({ ...filter,userId: e.target.value })}
-              >
-                <option value="">All Users</option>
-                {collaboration.users.map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
+              <div className="relative w-full sm:w-auto col-span-1">
+                <select
+                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
+                  value={filter.userId}
+                  onChange={(e) => setFilter({ ...filter,userId: e.target.value })}
+                >
+                  <option value="">All Users</option>
+                  {collaboration.users.map(u => (
+                    <option key={u._id} value={u._id}>{u.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                  <Filter size={14} />
+                </div>
+              </div>
 
               {/* Type Filter */}
-              <select
-                className="px-3 py-2 rounded-lg border border-gray-200 bg-white/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
-                value={filter.type}
-                onChange={(e) => setFilter({ ...filter,type: e.target.value })}
-              >
-                <option value="">All Types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
+              <div className="relative w-full sm:w-auto col-span-1">
+                <select
+                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
+                  value={filter.type}
+                  onChange={(e) => setFilter({ ...filter,type: e.target.value })}
+                >
+                  <option value="">All Types</option>
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                  <Filter size={14} />
+                </div>
+              </div>
 
-              {/* View Mode Toggle & Date Filter */}
-              <div className="flex items-center gap-2 bg-white/50 p-1 rounded-lg border border-gray-200">
-                {/* View Mode Toggle */}
-                <div className="flex bg-gray-100 rounded-md p-1">
+              {/* View Mode Toggle */}
+              <div className="flex items-center justify-center bg-surface p-1.5 rounded-xl border border-border w-full sm:w-auto col-span-1">
+                <div className="flex bg-neutral-100 rounded-lg p-1 w-full sm:w-auto">
                   <button
                     onClick={() => setFilter(prev => ({ ...prev,viewMode: 'month' }))}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+                    className={clsx(
+                      "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                      filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
+                    )}
                   >
                     Month
                   </button>
                   <button
                     onClick={() => setFilter(prev => ({ ...prev,viewMode: 'year' }))}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+                    className={clsx(
+                      "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                      filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
+                    )}
                   >
                     Year
                   </button>
                 </div>
+              </div>
 
-                {/* Month Filter */}
+              {/* Date Selection */}
+              <div className="col-span-1 w-full sm:w-auto">
                 {filter.viewMode === 'month' && (
-                  <input
-                    type="month"
-                    className="px-2 py-1 bg-transparent text-sm focus:outline-none cursor-pointer"
-                    value={filter.month}
-                    onChange={(e) => setFilter({ ...filter,month: e.target.value })}
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
+                  <div className="relative w-full">
+                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input
+                      type="month"
+                      className="w-full bg-surface border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text appearance-none transition-all hover:border-primary/50"
+                      value={filter.month}
+                      onChange={(e) => setFilter({ ...filter,month: e.target.value })}
+                      onKeyDown={(e) => e.preventDefault()}
+                    />
+                  </div>
                 )}
-
-                {/* Year Filter */}
                 {filter.viewMode === 'year' && (
-                  <select
-                    className="px-2 py-1 bg-transparent text-sm focus:outline-none cursor-pointer"
-                    value={filter.year}
-                    onChange={(e) => setFilter({ ...filter,year: e.target.value })}
-                  >
-                    {Array.from({ length: 5 },(_,i) => new Date().getFullYear() - i).map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
+                  <div className="relative w-full">
+                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <select
+                      className="w-full bg-surface border border-border rounded-xl pl-9 pr-8 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text appearance-none transition-all hover:border-primary/50 cursor-pointer"
+                      value={filter.year}
+                      onChange={(e) => setFilter({ ...filter,year: e.target.value })}
+                    >
+                      {Array.from({ length: 5 },(_,i) => new Date().getFullYear() - i).map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                      <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-currentColor"></div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Search */}
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+            <div className="relative w-full xl:w-72">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
               <input
                 type="text"
                 placeholder="Search transactions..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 bg-white/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:bg-surface-highlight focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                 value={filter.search}
                 onChange={(e) => setFilter({ ...filter,search: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-              <table className="w-full">
-                <thead className="bg-gray-50/50 border-b border-gray-100 sticky top-0 z-10 backdrop-blur-sm">
-                  <tr>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[180px]">Date</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider">Description</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[180px]">Category</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[160px]">Amount</th>
-                    <th className="text-left py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[160px]">Paid By</th>
-                    <th className="text-right py-3.5 px-4 text-sm font-semibold text-text-muted uppercase tracking-wider w-[100px]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {currentTransactions.map((t) => {
-                    const displayCategory = t.category === '__other__' ? (t.customCategory ?? t.category) : t.category;
-                    return (
-                      <tr key={t._id} className="hover:bg-gray-50/80 transition-colors group">
-                        <td className="py-3.5 px-4 text-base text-text-muted">
-                          <div className="flex items-center gap-4">
-                            <Calendar size={16} className="text-gray-400" />
-                            <span className="text-sm font-medium whitespace-nowrap">
-                              {new Date(t.date).toLocaleDateString('en-GB',{ weekday: 'short' }).toUpperCase()}, {new Date(t.date).toLocaleDateString('en-GB').replace(/\//g,'-')}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-base font-medium text-text truncate max-w-[220px]">
-                          {t.description || displayCategory}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-lg text-sm bg-gray-50 border border-gray-200 font-medium text-text-muted">
-                            {displayCategory}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-base font-bold">
-                          <span className={clsx(
-                            "flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-lg text-sm",
-                            t.type === 'income' ? 'text-success bg-green-50' : 'text-danger bg-red-50'
-                          )}>
-                            {t.type === 'income' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                            {formatCurrency(t.amount)}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-sm text-text-muted font-medium">
-                          {t.userId?.name}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2 transition-opacity">
-                            {t.category !== 'Settlement' && t.category !== 'Settlement Received' && (
-                              <>
-                                <button onClick={() => handleEdit(t)} className="p-1.5 text-text-muted hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                                  <Edit size={16} />
-                                </button>
-                                <button onClick={() => setDeleteDialog({ isOpen: true,id: t._id })} className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
-                                  <Trash2 size={16} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile List View */}
-            <div className="md:hidden space-y-3">
-              {currentTransactions.map((t) => {
-                const displayCategory = t.category === '__other__' ? (t.customCategory ?? t.category) : t.category;
-                return (
-                  <div key={t._id} className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className={clsx(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                        t.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                      )}>
-                        {t.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-text text-sm">{t.description || displayCategory}</p>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">{displayCategory}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[10px] text-text-muted flex items-center gap-1">
-                            <Calendar size={10} />
-                            {new Date(t.date).toLocaleDateString('en-GB',{ weekday: 'short' }).toUpperCase()}, {new Date(t.date).toLocaleDateString('en-GB').replace(/\//g,'-')}
-                          </p>
-                          <p className="text-[10px] text-text-muted">by {t.userId?.name}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={clsx(
-                        "font-bold text-sm",
-                        t.type === 'income' ? 'text-success' : 'text-danger'
-                      )}>
-                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                      </span>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {t.category !== 'Settlement' && t.category !== 'Settlement Received' && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(t)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              onClick={() => setDeleteDialog({ isOpen: true,id: t._id })}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {filteredTransactions.length === 0 && (
-              <div className="flex items-center justify-center h-48 text-text-muted">
-                <div className="text-center">
-                  <Calendar size={48} className="mx-auto mb-2 opacity-20" />
-                  <p>No transactions found</p>
-                </div>
-              </div>
-            )}
-
-          </div>
+          <TableResponsive
+            columns={columns}
+            data={currentTransactions}
+            renderMobileItem={renderMobileItem}
+            emptyMessage="No transactions found matching your filters."
+          />
 
           {/* Pagination Controls */}
           {filteredTransactions.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-4 border-t border-gray-100 bg-gray-50/30">
-              <div className="text-sm text-text-muted">
-                Showing {indexOfFirstTransaction + 1} to {Math.min(indexOfLastTransaction,filteredTransactions.length)} of {filteredTransactions.length} transactions
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 mt-4 border-t border-border">
+              <div className="text-sm text-text-muted font-medium">
+                Showing <span className="text-text font-bold">{indexOfFirstTransaction + 1}</span> to <span className="text-text font-bold">{Math.min(indexOfLastTransaction,filteredTransactions.length)}</span> of <span className="text-text font-bold">{filteredTransactions.length}</span> transactions
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1,1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-text hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                  className="gap-1"
                 >
-                  Previous
-                </button>
+                  <ChevronLeft size={16} /> Previous
+                </Button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages },(_,i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={clsx(
-                        "min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-all shadow-sm",
-                        currentPage === page
-                          ? "bg-primary text-white shadow-md"
-                          : "border border-gray-300 bg-white text-text hover:bg-gray-50"
-                      )}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {Array.from({ length: Math.min(5,totalPages) },(_,i) => {
+                    // Simple pagination logic for display (can be improved)
+                    let pageNum = i + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      pageNum = currentPage - 2 + i;
+                      if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                    }
+                    // Ensure pageNum is valid
+                    if (pageNum < 1) pageNum = 1;
+                    if (pageNum > totalPages) return null;
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={clsx(
+                          "w-8 h-8 rounded-lg text-sm font-bold transition-all",
+                          currentPage === pageNum
+                            ? "bg-primary text-white shadow-md"
+                            : "text-text-muted hover:bg-neutral-100"
+                        )}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1,totalPages))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-text hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                  className="gap-1"
                 >
-                  Next
-                </button>
+                  Next <ChevronRight size={16} />
+                </Button>
               </div>
             </div>
           )}
@@ -1240,169 +1425,153 @@ export default function CollaborationDashboard() {
       </div >
 
       {/* Modal */}
-      {
-        showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-            <Card className="w-full max-w-md relative animate-slide-up shadow-2xl border-none rounded-3xl overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-purple-600"></div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-text p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingId ? 'Edit Transaction' : lockedType === 'income' ? 'Add Income' : lockedType === 'expense' ? 'Add Expense' : 'Add Transaction'}
+        description="Enter the details below"
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* TYPE SELECTOR - Only show if not locked */}
+          {!lockedType && (
+            <div className="grid grid-cols-2 gap-4 p-1.5 bg-neutral-50 rounded-2xl border border-neutral-100">
+              <label className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="type"
+                  value="expense"
+                  checked={formData.type === 'expense'}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev,type: e.target.value,category: '',customCategory: '' }))
+                  }
+                  className="hidden peer"
+                />
+                <div className="text-center py-3 rounded-xl text-sm font-bold text-text-muted transition-all peer-checked:bg-white peer-checked:text-danger peer-checked:shadow-sm">
+                  Expense
+                </div>
+              </label>
 
-              <div className="p-6 pt-8">
-                <h3 className="text-2xl font-bold mb-1 text-text">
-                  {editingId ? 'Edit Transaction' : lockedType === 'income' ? 'Add Income' : lockedType === 'expense' ? 'Add Expense' : 'Add Transaction'}
-                </h3>
-                <p className="text-text-muted text-sm mb-6">Enter the details below</p>
+              <label className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="type"
+                  value="income"
+                  checked={formData.type === 'income'}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev,type: e.target.value,category: '',customCategory: '' }))
+                  }
+                  className="hidden peer"
+                />
+                <div className="text-center py-3 rounded-xl text-sm font-bold text-text-muted transition-all peer-checked:bg-white peer-checked:text-success peer-checked:shadow-sm">
+                  Income
+                </div>
+              </label>
+            </div>
+          )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* TYPE SELECTOR - Only show if not locked */}
-                  {!lockedType && (
-                    <div className="grid grid-cols-2 gap-4 p-1.5 bg-gray-50 rounded-2xl border border-gray-100">
-                      <label className="cursor-pointer">
-                        <input
-                          type="radio"
-                          name="type"
-                          value="expense"
-                          checked={formData.type === 'expense'}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev,type: e.target.value,category: '',customCategory: '' }))
-                          }
-                          className="hidden peer"
-                        />
-                        <div className="text-center py-3 rounded-xl text-sm font-bold text-gray-500 transition-all peer-checked:bg-white peer-checked:text-rose-600 peer-checked:shadow-sm">
-                          Expense
-                        </div>
-                      </label>
+          <div className="space-y-4">
+            {/* AMOUNT */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Amount</label>
+              <Input
+                type="number"
+                value={formData.amount}
+                onChange={(e) => setFormData((prev) => ({ ...prev,amount: e.target.value }))}
+                required
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                className="text-lg font-bold py-3"
+              />
+            </div>
 
-                      <label className="cursor-pointer">
-                        <input
-                          type="radio"
-                          name="type"
-                          value="income"
-                          checked={formData.type === 'income'}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev,type: e.target.value,category: '',customCategory: '' }))
-                          }
-                          className="hidden peer"
-                        />
-                        <div className="text-center py-3 rounded-xl text-sm font-bold text-gray-500 transition-all peer-checked:bg-white peer-checked:text-emerald-600 peer-checked:shadow-sm">
-                          Income
-                        </div>
-                      </label>
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    {/* AMOUNT */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Amount</label>
-                      <Input
-                        type="number"
-                        value={formData.amount}
-                        onChange={(e) => setFormData((prev) => ({ ...prev,amount: e.target.value }))}
-                        required
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="text-lg font-bold py-3"
-                      />
-                    </div>
-
-                    {/* CATEGORY FIELD */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Category</label>
-                      {formData.category === '__other__' ? (
-                        <input
-                          type="text"
-                          placeholder="Enter custom category"
-                          value={formData.customCategory}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              customCategory: e.target.value,
-                              category: '__other__',
-                            }))
-                          }
-                          onBlur={() => {
-                            setFormData((prev) => {
-                              if ((prev.customCategory ?? '').trim() !== '') {
-                                return { ...prev,category: '__other__' };
-                              } else {
-                                return { ...prev,category: '',customCategory: '' };
-                              }
-                            });
-                          }}
-                          required
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium"
-                        />
-                      ) : (
-                        <div className="relative">
-                          <select
-                            value={formData.category}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === 'Other') {
-                                setFormData((prev) => ({ ...prev,category: '__other__',customCategory: '' }));
-                              } else {
-                                setFormData((prev) => ({ ...prev,category: value,customCategory: '' }));
-                              }
-                            }}
-                            required
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer text-sm font-medium appearance-none"
-                          >
-                            <option value="">Select Category</option>
-                            {(formData.type === 'expense' ? defaultCategories.expense : defaultCategories.income).map((cat) => (
-                              <option key={cat} value={cat}>
-                                {cat}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                            <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-currentColor"></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* DESCRIPTION */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Description</label>
-                      <Input
-                        type="text"
-                        value={formData.description}
-                        onChange={(e) => setFormData((prev) => ({ ...prev,description: e.target.value }))}
-                        placeholder="What was this for?"
-                        className="py-3"
-                      />
-                    </div>
-
-                    {/* DATE */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Date</label>
-                      <Input
-                        type="date"
-                        value={formData.date}
-                        max={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setFormData((prev) => ({ ...prev,date: e.target.value }))}
-                        required
-                        className="py-3"
-                      />
-                    </div>
+            {/* CATEGORY FIELD */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Category</label>
+              {formData.category === '__other__' ? (
+                <Input
+                  type="text"
+                  placeholder="Enter custom category"
+                  value={formData.customCategory}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      customCategory: e.target.value,
+                      category: '__other__',
+                    }))
+                  }
+                  onBlur={() => {
+                    setFormData((prev) => {
+                      if ((prev.customCategory ?? '').trim() !== '') {
+                        return { ...prev,category: '__other__' };
+                      } else {
+                        return { ...prev,category: '',customCategory: '' };
+                      }
+                    });
+                  }}
+                  required
+                  className="py-3"
+                />
+              ) : (
+                <div className="relative">
+                  <select
+                    value={formData.category}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'Other') {
+                        setFormData((prev) => ({ ...prev,category: '__other__',customCategory: '' }));
+                      } else {
+                        setFormData((prev) => ({ ...prev,category: value,customCategory: '' }));
+                      }
+                    }}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer text-sm font-medium appearance-none"
+                  >
+                    <option value="">Select Category</option>
+                    {(formData.type === 'expense' ? defaultCategories.expense : defaultCategories.income).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                    <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-currentColor"></div>
                   </div>
+                </div>
+              )}
+            </div>
 
-                  <Button type="submit" className="w-full py-4 text-base font-bold shadow-lg shadow-primary/25 mt-4 rounded-xl hover:scale-[1.02] transition-transform">
-                    {editingId ? 'Save Changes' : 'Add Transaction'}
-                  </Button>
-                </form>
-              </div>
-            </Card>
+            {/* DESCRIPTION */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Description</label>
+              <Input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev,description: e.target.value }))}
+                placeholder="What was this for?"
+                className="py-3"
+              />
+            </div>
+
+            {/* DATE */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">Date</label>
+              <Input
+                type="date"
+                value={formData.date}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setFormData((prev) => ({ ...prev,date: e.target.value }))}
+                required
+                className="py-3"
+              />
+            </div>
           </div>
-        )
-      }
+
+          <Button type="submit" className="w-full py-4 text-base font-bold shadow-lg shadow-primary/25 mt-4 rounded-xl hover:scale-[1.02] transition-transform">
+            {editingId ? 'Save Changes' : 'Add Transaction'}
+          </Button>
+        </form>
+      </Modal>
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog

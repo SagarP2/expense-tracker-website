@@ -2,45 +2,61 @@ import React from 'react';
 import { Card } from './ui/Card';
 import { formatCurrency } from '../utils/format';
 import {
-    TrendingUp, TrendingDown, Activity, Target,
-    Lightbulb, Zap, Award, ArrowRight, Wallet
+    TrendingUp,TrendingDown,Activity,Target,
+    Lightbulb,Zap,Award,ArrowRight,Wallet
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart,Bar,XAxis,Tooltip,ResponsiveContainer,Cell } from 'recharts';
+import { useTheme } from '../context/ThemeContext';
+
+const useChartTheme = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    return {
+        text: isDark ? '#94a3b8' : '#64748b',
+        grid: isDark ? '#334155' : '#e2e8f0',
+        tooltipBg: isDark ? '#1e293b' : '#ffffff',
+        tooltipBorder: isDark ? '#334155' : '#e2e8f0',
+        tooltipText: isDark ? '#f8fafc' : '#0f172a',
+        barPrimary: isDark ? '#60a5fa' : '#3b82f6',
+        barSecondary: isDark ? '#1e40af' : '#93c5fd',
+    };
+};
 
 export const MiniStatsStrip = ({ data }) => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up">
-        <Card className="p-4 bg-white/60 backdrop-blur-sm border-none shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform">
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Avg. Daily Spend</p>
+        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Avg. Daily Spend</p>
             <div className="flex items-end justify-between mt-2">
                 <h4 className="text-lg font-bold text-text">{formatCurrency(data.avgDaily)}</h4>
-                <Activity size={16} className="text-primary/50 mb-1" />
+                <Activity size={18} className="text-primary/70 mb-1" />
             </div>
         </Card>
-        <Card className="p-4 bg-white/60 backdrop-blur-sm border-none shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform">
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Biggest Purchase</p>
+        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Biggest Purchase</p>
             <div className="flex items-end justify-between mt-2">
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col">
                     <h4 className="text-lg font-bold text-text">{formatCurrency(data.biggestTx.amount)}</h4>
-                    <span className="text-xs font-small mt-0.5 text-text-muted">{data.biggestTx.category}</span>
+                    <span className="text-[10px] font-medium text-text-muted truncate max-w-[100px]">{data.biggestTx.category}</span>
                 </div>
-                <Zap size={16} className="text-amber-500/50 mb-1" />
+                <Zap size={18} className="text-amber-500/70 mb-1" />
             </div>
         </Card>
-        <Card className="p-4 bg-white/60 backdrop-blur-sm border-none shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform">
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Lowest Purchase</p>
+        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Lowest Purchase</p>
             <div className="flex items-end justify-between mt-2">
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col">
                     <h4 className="text-lg font-bold text-text">{formatCurrency(data.lowestTx.amount)}</h4>
-                    <span className="text-xs font-small mt-0.5 text-text-muted">{data.lowestTx.category}</span>
+                    <span className="text-[10px] font-medium text-text-muted truncate max-w-[100px]">{data.lowestTx.category}</span>
                 </div>
-                <TrendingDown size={16} className="text-emerald-500/50 mb-1" />
+                <TrendingDown size={18} className="text-emerald-500/70 mb-1" />
             </div>
         </Card>
-        <Card className="p-4 bg-white/60 backdrop-blur-sm border-none shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform">
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Transactions</p>
+        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Total Transactions</p>
             <div className="flex items-end justify-between mt-2">
                 <h4 className="text-lg font-bold text-text">{data.txCount}</h4>
-                <Wallet size={16} className="text-blue-500/50 mb-1" />
+                <Wallet size={18} className="text-blue-500/70 mb-1" />
             </div>
         </Card>
     </div>
@@ -60,12 +76,12 @@ export const HealthScoreWidget = ({ score }) => {
     };
 
     return (
-        <Card className="h-full flex flex-col items-center justify-center p-6 bg-white border-none shadow-soft relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-400 via-amber-400 to-emerald-400 opacity-50"></div>
-            <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">Financial Health</h3>
+        <Card className="h-full flex flex-col items-center justify-center p-6 bg-surface border-border shadow-soft relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-rose-400 via-amber-400 to-emerald-400 opacity-50 dark:opacity-10 dark:from-transparent dark:to-transparent"></div>
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Financial Health</h3>
             <div className="relative w-32 h-32 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-neutral-100" />
                     <circle
                         cx="64" cy="64" r="56"
                         stroke="currentColor" strokeWidth="8"
@@ -78,7 +94,7 @@ export const HealthScoreWidget = ({ score }) => {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className={`text-3xl font-bold ${getColor(score)}`}>{Math.round(score)}</span>
-                    <span className="text-xs text-text-muted font-medium">{getLabel(score)}</span>
+                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider mt-1">{getLabel(score)}</span>
                 </div>
             </div>
         </Card>
@@ -87,9 +103,9 @@ export const HealthScoreWidget = ({ score }) => {
 
 export const HealthBarWidget = ({ score }) => {
     const getColor = (s) => {
-        if (s >= 80) return 'text-emerald-500';
-        if (s >= 50) return 'text-amber-500';
-        return 'text-rose-500';
+        if (s >= 80) return 'text-emerald-600';
+        if (s >= 50) return 'text-amber-600';
+        return 'text-rose-600';
     };
 
     const getBgColor = (s) => {
@@ -115,22 +131,22 @@ export const HealthBarWidget = ({ score }) => {
     const lightBgClass = getLightBgColor(score);
 
     return (
-        <Card hover className="bg-gradient-to-br from-white to-indigo-50/50 border-indigo-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+        <Card hover className="h-full bg-gradient-to-br from-surface to-indigo-50/30 dark:bg-none dark:bg-surface border-indigo-100/50 dark:border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between p-5">
             <div className="flex items-center justify-between mb-2">
                 <div className={`p-3 ${lightBgClass} rounded-2xl ${colorClass}`}>
-                    <Activity size={24} />
+                    <Activity size={20} />
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full ${lightBgClass} ${colorClass}`}>
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${lightBgClass} ${colorClass}`}>
                     {getLabel(score)}
                 </span>
             </div>
             <div>
-                <p className="text-text-muted text-sm font-semibold uppercase tracking-wider">Financial Health</p>
-                <div className="flex items-end gap-2 mt-1 mb-2">
+                <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Financial Health</p>
+                <div className="flex items-end gap-2 mt-1 mb-3">
                     <h3 className="text-2xl font-bold text-text">{Math.round(score)}</h3>
-                    <span className="text-sm text-text-muted mb-1">/ 100</span>
+                    <span className="text-xs text-text-muted font-medium mb-1.5">/ 100</span>
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all duration-1000 ease-out ${bgClass}`}
                         style={{ width: `${score}%` }}
@@ -151,33 +167,33 @@ export const SmartInsightsWidget = ({ insight }) => {
     };
 
     return (
-        <Card className="h-full p-6 bg-gradient-to-br from-indigo-50 to-white border-none shadow-soft flex flex-col">
-            <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-white rounded-lg shadow-sm">
+        <Card className="h-full p-6 bg-gradient-to-br from-indigo-50/50 to-surface dark:bg-none dark:bg-surface border-border shadow-soft flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-surface rounded-xl shadow-sm border border-border/50">
                     {getIcon(insight.type)}
                 </div>
-                <h3 className="font-bold text-indigo-900">Smart Insight</h3>
+                <h3 className="font-bold text-indigo-950 text-sm uppercase tracking-wide">Smart Insight</h3>
             </div>
-            <p className="text-sm text-indigo-800/80 font-medium leading-relaxed">
+            <p className="text-sm text-text-secondary font-medium leading-relaxed">
                 {insight.message}
             </p>
             <div className="mt-auto pt-4">
-                <button className="text-xs font-bold text-indigo-600 flex items-center hover:gap-2 transition-all">
-                    View Details <ArrowRight size={12} className="ml-1" />
+                <button className="text-xs font-bold text-primary flex items-center hover:gap-2 transition-all group">
+                    View Details <ArrowRight size={12} className="ml-1 group-hover:translate-x-0.5 transition-transform" />
                 </button>
             </div>
         </Card>
     );
 };
 
-export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
-    const [isModalOpen, setIsModalOpen] = React.useState(false);
-    const [goalValue, setGoalValue] = React.useState(target);
-    const percentage = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0;
+export const GoalTrackerWidget = ({ current,target,onUpdateGoal }) => {
+    const [isModalOpen,setIsModalOpen] = React.useState(false);
+    const [goalValue,setGoalValue] = React.useState(target);
+    const percentage = target > 0 ? Math.min(100,Math.max(0,(current / target) * 100)) : 0;
 
     React.useEffect(() => {
         setGoalValue(target);
-    }, [target]);
+    },[target]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -194,32 +210,38 @@ export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
 
     return (
         <>
-            <Card className="h-full p-6 bg-white border-none shadow-soft flex flex-col justify-center">
-                <div className="flex items-center justify-between mb-2">
+            <Card className="h-full p-5 bg-surface border-border shadow-soft flex flex-col justify-center">
+                <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <Target size={18} className="text-primary" />
-                        <h3 className="font-bold text-text">Monthly Savings Goal</h3>
+                        <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                            <Target size={16} />
+                        </div>
+                        <h3 className="font-bold text-text text-sm">Monthly Goal</h3>
                     </div>
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">{Math.round(percentage)}%</span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">{Math.round(percentage)}%</span>
                 </div>
                 <div className="mb-4">
-                    <div className="flex justify-between text-md text-text-muted mb-1">
+                    <div className="flex justify-between text-xs font-medium text-text-muted mb-1.5">
                         <span>{formatCurrency(current)}</span>
                         <span>Target: {formatCurrency(target)}</span>
                     </div>
-                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full transition-all duration-1000 ease-out"
                             style={{ width: `${percentage}%` }}
                         ></div>
                     </div>
                 </div>
-                <p className="text-xs text-text-muted mb-3">
-                    {target === 0 ? "Set a goal to track your savings!" : percentage >= 100 ? "🎉 Goal reached! Great job!" : `You need ${formatCurrency(target - current)} more to reach your goal.`}
+                <p className="text-xs text-text-muted mb-3 leading-relaxed">
+                    {target === 0 ? "Set a goal to track your savings!" : percentage >= 100 ? (
+                        <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                            🎉 Goal reached! (+{formatCurrency(current - target)})
+                        </span>
+                    ) : `You need ${formatCurrency(target - current)} more to reach your goal.`}
                 </p>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="w-full py-2 px-4 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+                    className="w-full py-2 px-4 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-primary-600 transition-colors shadow-lg shadow-primary/20"
                 >
                     Set Goal
                 </button>
@@ -227,19 +249,19 @@ export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleCancel}>
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-text">Set Monthly Savings Goal</h3>
-                            <button onClick={handleCancel} className="text-text-muted hover:text-text transition-colors">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]" onClick={handleCancel}>
+                    <div className="bg-surface rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 animate-scale-in border border-border" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-text">Set Monthly Savings Goal</h3>
+                            <button onClick={handleCancel} className="text-text-muted hover:text-text transition-colors p-1 hover:bg-neutral-100 rounded-full">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-6">
-                                <label className="block text-sm font-semibold text-text-muted mb-2">
+                                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
                                     Goal Amount (₹)
                                 </label>
                                 <input
@@ -247,7 +269,7 @@ export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
                                     value={goalValue === 0 ? '' : goalValue}
                                     onChange={(e) => setGoalValue(e.target.value === '' ? 0 : Number(e.target.value))}
                                     onFocus={(e) => e.target.select()}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-lg"
+                                    className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-lg bg-surface-highlight font-medium transition-all"
                                     placeholder="Enter your savings goal"
                                     autoFocus
                                     min="0"
@@ -257,13 +279,13 @@ export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
                                 <button
                                     type="button"
                                     onClick={handleCancel}
-                                    className="flex-1 py-2.5 px-4 border border-gray-200 text-text-muted font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                                    className="flex-1 py-2.5 px-4 border border-border text-text-secondary font-semibold rounded-xl hover:bg-neutral-50 transition-colors text-sm"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+                                    className="flex-1 py-2.5 px-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary-600 transition-colors shadow-lg shadow-primary/25 text-sm"
                                 >
                                     Save Goal
                                 </button>
@@ -276,42 +298,163 @@ export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
     );
 };
 
-export const WeeklyActivityWidget = ({ data }) => (
-    <Card className="h-full p-6 bg-white border-none shadow-soft">
-        <h3 className="font-bold text-text mb-4 flex items-center gap-2">
-            <Activity size={18} className="text-gray-400" />
-            Weekly Activity
-        </h3>
-        <div className="h-40 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <Tooltip
-                        cursor={{ fill: 'transparent' }}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                    <Bar dataKey="expense" radius={[4, 4, 0, 0]}>
-                        {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#cbd5e1' : '#94a3b8'} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    </Card>
-);
+import { getWeeklyActivity,getMonthlyActivity } from '../utils/dashboardUtils';
+
+export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }) => {
+    const [viewMode,setViewMode] = React.useState('overview'); // 'overview', 'week1', 'week2', 'week3', 'week4', 'week5', 'week6'
+
+    const data = React.useMemo(() => {
+        if (viewMode === 'overview') {
+            return getMonthlyActivity(transactions);
+        } else {
+            // Filter transactions for the selected week
+            const weekIndex = parseInt(viewMode.replace('week','')) - 1; // 0-5
+            const weekTransactions = transactions.filter(t => {
+                const tDate = new Date(t.date);
+                const day = tDate.getDate();
+                const firstDayOfMonth = new Date(tDate.getFullYear(),tDate.getMonth(),1).getDay();
+                const tWeekIndex = Math.floor((day + firstDayOfMonth - 1) / 7);
+                return tWeekIndex === weekIndex;
+            });
+            return getWeeklyActivity(weekTransactions);
+        }
+    },[viewMode,transactions]);
+
+    const getDateRange = () => {
+        // Use selectedMonth and selectedYear if provided, otherwise use current date
+        let year,month;
+        if (selectedMonth && selectedYear) {
+            // selectedMonth is in YYYY-MM format
+            const [y,m] = selectedMonth.split('-');
+            year = parseInt(y);
+            month = parseInt(m) - 1; // Month is 0-indexed
+        } else {
+            const now = new Date();
+            year = now.getFullYear();
+            month = now.getMonth();
+        }
+
+        const options = { day: '2-digit',month: 'short' };
+
+        if (viewMode === 'overview') {
+            const startDate = new Date(year,month,1);
+            const endDate = new Date(year,month + 1,0);
+            return `(${startDate.toLocaleDateString('en-GB',options)} - ${endDate.toLocaleDateString('en-GB',options)})`;
+        }
+
+        const weekIndex = parseInt(viewMode.replace('week','')) - 1;
+        const firstDayOfMonth = new Date(year,month,1).getDay(); // 0=Sun, 6=Sat
+
+        // Calculate start date of the week
+        // Week 0 starts on 1st.
+        // Week > 0 starts on Sunday: 1 + (7 - firstDayOfMonth) + (weekIndex - 1) * 7
+        let startDay;
+        if (weekIndex === 0) {
+            startDay = 1;
+        } else {
+            startDay = 1 + (7 - firstDayOfMonth) + (weekIndex - 1) * 7;
+        }
+
+        const startDate = new Date(year,month,startDay);
+
+        // Calculate end date (start + 6 days, but cap at end of month, and Week 0 ends on first Sat)
+        let endDay;
+        if (weekIndex === 0) {
+            endDay = 1 + (6 - firstDayOfMonth);
+        } else {
+            endDay = startDay + 6;
+        }
+
+        const endDate = new Date(year,month,endDay);
+        const lastDayOfMonth = new Date(year,month + 1,0);
+
+        // Cap end date at the last day of the month
+        const finalEndDate = endDate > lastDayOfMonth ? new Date(year,month + 1,0) : endDate;
+
+        // If start date is beyond month end (e.g. Week 6 in a short month), handle gracefully
+        if (startDate > lastDayOfMonth) {
+            return '';
+        }
+
+        return `(${startDate.toLocaleDateString('en-GB',options)} - ${finalEndDate.toLocaleDateString('en-GB',options)})`;
+    };
+
+    const chartTheme = useChartTheme();
+
+    return (
+        <Card className="h-[232px] p-5 bg-surface border-border shadow-soft flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text flex items-center gap-2 text-sm">
+                    <Activity size={16} className="text-primary" />
+                    {viewMode === 'overview' ? 'Monthly Activity' : `Week ${viewMode.replace('week','')}`}
+                    <span className="text-[10px] text-text-muted font-normal ml-1 hidden sm:inline-block">
+                        {getDateRange()}
+                    </span>
+                </h3>
+                <div className="bg-surface-highlight rounded-lg p-0.5 border border-border">
+                    <select
+                        value={viewMode}
+                        onChange={(e) => setViewMode(e.target.value)}
+                        className="bg-transparent text-[10px] font-bold uppercase tracking-wide text-text-secondary focus:outline-none cursor-pointer px-2 py-1"
+                    >
+                        <option value="overview">Month Overview</option>
+                        <option value="week1">Week 1</option>
+                        <option value="week2">Week 2</option>
+                        <option value="week3">Week 3</option>
+                        <option value="week4">Week 4</option>
+                        <option value="week5">Week 5</option>
+                        <option value="week6">Week 6</option>
+                    </select>
+                </div>
+            </div>
+            <div className="h-60 w-full flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data}>
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10,fill: chartTheme.text,fontWeight: 500 }}
+                            interval={0}
+                            dy={10}
+                        />
+                        <Tooltip
+                            cursor={{ fill: 'transparent' }}
+                            contentStyle={{
+                                borderRadius: '12px',
+                                border: `1px solid ${chartTheme.tooltipBorder}`,
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                                padding: '8px 12px',
+                                backgroundColor: chartTheme.tooltipBg,
+                                color: chartTheme.tooltipText
+                            }}
+                            formatter={(value) => [formatCurrency(value),'Expense']}
+                            labelStyle={{ color: chartTheme.text,fontSize: '12px',marginBottom: '4px' }}
+                            itemStyle={{ color: chartTheme.tooltipText }}
+                        />
+                        <Bar dataKey="expense" radius={[4,4,0,0]}>
+                            {data && data.map((entry,index) => (
+                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? chartTheme.barPrimary : chartTheme.barSecondary} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </Card>
+    );
+};
 
 export const CategoryHighlightWidget = ({ category }) => {
     if (!category) return null;
 
     return (
-        <Card className="h-full p-6 bg-gradient-to-br from-orange-50 to-white border-none shadow-soft flex flex-col justify-center items-center text-center">
-            <div className="p-3 bg-orange-100 rounded-full text-orange-600 mb-3">
-                <Award size={24} />
+        <Card className="h-full p-5 bg-gradient-to-br from-orange-50/50 to-surface dark:bg-none dark:bg-surface border-border shadow-soft flex flex-col justify-center items-center text-center">
+            <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 mb-3 shadow-sm">
+                <Award size={20} />
             </div>
-            <h3 className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-1">Top Category</h3>
-            <p className="text-lg font-bold text-orange-900 mb-1">{category.name}</p>
-            <p className="text-2xl font-black text-orange-600">{formatCurrency(category.amount)}</p>
+            <h3 className="text-[10px] font-bold text-orange-900/60 uppercase tracking-wider mb-1">Top Category</h3>
+            <p className="text-sm font-bold text-orange-950 mb-1 truncate max-w-full px-2">{category.name}</p>
+            <p className="text-xl font-black text-orange-600">{formatCurrency(category.amount)}</p>
         </Card>
     );
 };

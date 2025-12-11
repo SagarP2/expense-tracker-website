@@ -5,9 +5,11 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { getMyCollaborations,sendCollabInvite,acceptCollabInvite,rejectCollabInvite,getBalanceSummary } from '../../services/collabApi';
-import { Users,Plus,Clock,CheckCircle,XCircle,ArrowRight,Mail } from 'lucide-react';
+import { getMyCollaborations,sendCollabInvite,acceptCollabInvite,rejectCollabInvite,getBalanceSummary,requestDeletion } from '../../services/collabApi';
+import { Modal } from '../../components/ui/Modal';
+import { Users,Plus,Clock,CheckCircle,XCircle,ArrowRight,Mail,Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'; // Assuming you have this or standard confirm
 
 export default function CollaborationList() {
   const [collaborations,setCollaborations] = useState([]);
@@ -17,6 +19,11 @@ export default function CollaborationList() {
   const [inviteEmail,setInviteEmail] = useState('');
   const [inviteLoading,setInviteLoading] = useState(false);
   const [error,setError] = useState('');
+
+  // Custom dialog states
+  const [deleteId,setDeleteId] = useState(null);
+  const [alertInfo,setAlertInfo] = useState({ isOpen: false,title: '',message: '' });
+
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -89,6 +96,33 @@ export default function CollaborationList() {
     }
   };
 
+  const handleDelete = (e,id) => {
+    e.stopPropagation();
+    setDeleteId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await requestDeletion(deleteId);
+      fetchCollaborations();
+      setAlertInfo({
+        isOpen: true,
+        title: 'Request Sent',
+        message: 'Deletion requested. The other user needs to accept it.'
+      });
+    } catch (error) {
+      console.error('Failed to delete collaboration',error);
+      setAlertInfo({
+        isOpen: true,
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to request deletion'
+      });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
   const activeCollabs = collaborations.filter(c => c.status === 'active');
   const pendingInvites = collaborations.filter(c => c.status === 'pending');
   const rejectedInvites = collaborations.filter(c => c.status === 'rejected' && c.createdBy._id === user._id);
@@ -119,7 +153,7 @@ export default function CollaborationList() {
             <Clock size={20} className="text-yellow-600" />
             Pending Invitations
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {pendingInvites.map((collab) => {
               const otherUser = collab.users.find(u => u._id !== collab.createdBy._id);
               const isSentByMe = collab.createdBy._id === user._id;
@@ -176,7 +210,7 @@ export default function CollaborationList() {
             <XCircle size={20} className="text-red-600" />
             Cancelled Invitations
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {rejectedInvites.map((collab) => {
               const otherUser = collab.users.find(u => u._id !== collab.createdBy._id);
 
@@ -228,7 +262,7 @@ export default function CollaborationList() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {activeCollabs.map((collab) => {
               const otherUser = collab.users.find(u => u._id !== user._id);
               const balance = balances[collab._id];
@@ -253,8 +287,14 @@ export default function CollaborationList() {
                         <p className="text-sm text-text-muted">{otherUser?.email}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => handleDelete(e,collab._id)}
+                      className="p-2 text-text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete Collaboration"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
-
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-2">
                       <Badge variant="success">Active</Badge>
@@ -272,58 +312,65 @@ export default function CollaborationList() {
       </div>
 
       {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <Card className="w-full max-w-md relative animate-slide-up shadow-2xl border-none">
-            <button
-              onClick={() => {
-                setShowInviteModal(false);
-                setError('');
-                setInviteEmail('');
-              }}
-              className="absolute top-4 right-4 text-text-muted hover:text-text p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <XCircle size={20} />
-            </button>
+      <Modal
+        isOpen={showInviteModal}
+        onClose={() => {
+          setShowInviteModal(false);
+          setError('');
+          setInviteEmail('');
+        }}
+        title="Invite User"
+        description="Start sharing expenses together"
+      >
+        {error && (
+          <div className="bg-danger/10 text-danger p-3 rounded-xl mb-4 text-sm font-medium border border-danger/20">
+            {error}
+          </div>
+        )}
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Mail size={24} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text">Invite User</h3>
-                <p className="text-sm text-text-muted">Start sharing expenses together</p>
-              </div>
-            </div>
+        <form onSubmit={handleSendInvite} className="space-y-5">
+          <Input
+            label="Email Address"
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            required
+            placeholder="user@example.com"
+            className="text-base py-3"
+          />
 
-            {error && (
-              <div className="bg-red-50 text-danger p-3 rounded-lg mb-4 text-sm">
-                {error}
-              </div>
-            )}
+          <Button
+            type="submit"
+            className="w-full py-4 text-base font-bold shadow-lg shadow-primary/25 rounded-xl hover:scale-[1.02] transition-transform"
+            disabled={inviteLoading}
+          >
+            {inviteLoading ? 'Sending...' : 'Send Invitation'}
+          </Button>
+        </form>
+      </Modal>
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={executeDelete}
+        title="Delete Collaboration"
+        message="Are you sure you want to delete this collaboration? This action cannot be undone and will delete all associated transactions."
+      />
 
-            <form onSubmit={handleSendInvite} className="space-y-5">
-              <Input
-                label="Email Address"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-                placeholder="user@example.com"
-                className="text-base"
-              />
-
-              <Button
-                type="submit"
-                className="w-full py-3 text-base shadow-glow"
-                disabled={inviteLoading}
-              >
-                {inviteLoading ? 'Sending...' : 'Send Invitation'}
-              </Button>
-            </form>
-          </Card>
+      {/* Alert Modal */}
+      <Modal
+        isOpen={alertInfo.isOpen}
+        onClose={() => setAlertInfo({ ...alertInfo,isOpen: false })}
+        title={alertInfo.title}
+        className="max-w-md"
+      >
+        <p className="text-text mb-6">{alertInfo.message}</p>
+        <div className="flex justify-end">
+          <Button onClick={() => setAlertInfo({ ...alertInfo,isOpen: false })}>
+            OK
+          </Button>
         </div>
-      )}
-    </div>
+      </Modal>
+    </div >
   );
 }

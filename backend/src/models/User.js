@@ -5,12 +5,18 @@ const userSchema = mongoose.Schema(
     {
         name: { type: String,required: true },
         email: { type: String,required: true,unique: true },
+        username: { type: String,unique: true },
         password: { type: String,required: true },
         mobileNumber: { type: String,default: '' },
         savingsGoal: { type: Number,default: 0 },
         emailVerified: { type: Boolean,default: false },
         verificationToken: String,
         verificationExpires: Date,
+        monthlyGoalStatus: {
+            month: String, // 'YYYY-MM'
+            isReachedNotified: { type: Boolean,default: false },
+            isPendingNotified: { type: Boolean,default: false }
+        }
     },
     { timestamps: true }
 );

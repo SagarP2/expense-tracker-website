@@ -35,6 +35,26 @@ const collaborationSchema = new mongoose.Schema({
             type: Date,
             default: null
         }
+    },
+    settlementRequest: {
+        requestedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+        requestedAt: {
+            type: Date,
+            default: null
+        },
+        amount: {
+            type: Number,
+            default: 0
+        },
+        method: {
+            type: String,
+            enum: ['UPI','Cash'],
+            default: 'UPI'
+        }
     }
 },{
     timestamps: true

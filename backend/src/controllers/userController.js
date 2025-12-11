@@ -1,89 +1,88 @@
 const User = require('../models/User');
+const { generateUniqueUsername } = require('../helpers/usernameHelper');
+const { checkGoalStatus } = require('../utils/goalChecker');
+
+// @desc    Get user's savings goal
+// @route   GET /api/users/savings-goal
+// @access  Private
+const { get,set,del } = require('../utils/cache');
 
 // @desc    Get user's savings goal
 // @route   GET /api/users/savings-goal
 // @access  Private
 const getSavingsGoal = async (req,res) => {
-    try {
+    // req.user is guaranteed by protect middleware
 
+    const cacheKey = `user:savings:${req.user._id}`;
+    const cachedGoal = await get(cacheKey);
 
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({ message: 'User not authenticated' });
-        }
-
-        const user = await User.findById(req.user._id).select('savingsGoal');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({ savingsGoal: user.savingsGoal || 0 });
-    } catch (error) {
-        console.error('Error fetching savings goal:',error);
-        res.status(500).json({ message: 'Server error',error: error.message });
+    if (cachedGoal !== null) {
+        return res.json({ savingsGoal: cachedGoal });
     }
+
+    // We can also fetch the user again if we need fresh data, or just use req.user ID
+    const user = await User.findById(req.user._id).select('savingsGoal');
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    const goal = user.savingsGoal || 0;
+    await set(cacheKey,goal,60); // Cache for 60s
+
+    res.json({ savingsGoal: goal });
 };
 
 // @desc    Update user's savings goal
 // @route   PUT /api/users/savings-goal
 // @access  Private
 const updateSavingsGoal = async (req,res) => {
-    try {
+    // req.user is guaranteed by protect middleware
 
+    const { savingsGoal } = req.body;
 
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({ message: 'User not authenticated' });
-        }
+    if (savingsGoal < 0) {
+        res.status(400);
+        throw new Error('Savings goal must be a positive number');
+    }
 
-        const { savingsGoal } = req.body;
+    const user = await User.findById(req.user._id);
 
-        if (savingsGoal < 0) {
-            return res.status(400).json({ message: 'Savings goal must be a positive number' });
-        }
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
 
-        const user = await User.findById(req.user._id);
+    user.savingsGoal = savingsGoal;
+    await user.save();
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+    // Invalidate cache
+    await del(`user:savings:${req.user._id}`);
 
-        user.savingsGoal = savingsGoal;
-        await user.save();
+    // Check goal status immediately
+    await checkGoalStatus(req.user._id);
 
+    res.json({ savingsGoal: user.savingsGoal });
+};
 
-        res.json({ savingsGoal: user.savingsGoal });
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+const getUserProfile = async (req,res) => {
+    const user = await User.findById(req.user._id);
 
-        // Check if goal is reached (simplified logic: if savings > goal)
-        // This requires calculating total savings which might be complex here.
-        // For now, we'll just trigger a notification that the goal was updated.
-        // Or better, we can't easily check "reached" without aggregating transactions.
-        // Let's skip goal reached notification here as it requires transaction aggregation
-        // which is not available in this controller.
-        // Alternatively, we can just notify that the goal was set.
-
-        // Re-reading requirements: "goal_status – goal reached / not reached"
-        // "On goal status update (reached / not reached)"
-        // This implies we need to check the current savings against the new goal.
-        // Since we don't have savings here, I will add a TODO or skip if too complex for this scope.
-        // Wait, the user request says "On goal status update (reached / not reached)".
-        // I'll add a placeholder notification for now.
-
-        /*
-        const { createNotification } = require('../services/notificationService');
-        await createNotification(
-            user._id,
-            null,
-            'goal_status',
-            {
-                goalName: 'Savings Goal',
-                reached: false // We need actual savings to determine this
-            },
-            `goal_update_${user._id}_${Date.now()}`
-        );
-        */
-    } catch (error) {
-        // console.error('Error updating savings goal:',error);
-        res.status(500).json({ message: 'Server error',error: error.message });
+    if (user) {
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            mobileNumber: user.mobileNumber,
+        });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
     }
 };
 
@@ -91,32 +90,39 @@ const updateSavingsGoal = async (req,res) => {
 // @route   PUT /api/users/profile
 // @access  Private
 const updateUserProfile = async (req,res) => {
-    try {
-        const user = await User.findById(req.user._id);
+    // req.user is guaranteed by protect middleware
 
-        if (user) {
-            user.name = req.body.name || user.name;
-            user.mobileNumber = req.body.mobileNumber || user.mobileNumber;
+    const user = await User.findById(req.user._id);
 
-            if (req.body.password) {
-                user.password = req.body.password;
-            }
+    if (user) {
+        user.name = req.body.name || user.name;
+        user.mobileNumber = req.body.mobileNumber || user.mobileNumber;
 
-            const updatedUser = await user.save();
-
-            res.json({
-                _id: updatedUser._id,
-                name: updatedUser.name,
-                email: updatedUser.email,
-                mobileNumber: updatedUser.mobileNumber,
-                token: req.headers.authorization.split(' ')[1], // Keep existing token
-            });
-        } else {
-            res.status(404).json({ message: 'User not found' });
+        // Regenerate username if name or mobile number changed
+        if (req.body.name || req.body.mobileNumber) {
+            user.username = await generateUniqueUsername(User,user.name,user.mobileNumber);
         }
-    } catch (error) {
-        res.status(500).json({ message: 'Server error',error: error.message });
+
+        if (req.body.password) {
+            user.password = req.body.password;
+        }
+
+        const updatedUser = await user.save();
+
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            username: updatedUser.username,
+            mobileNumber: updatedUser.mobileNumber,
+            // Keep existing token
+            token: req.headers.authorization ? req.headers.authorization.split(' ')[1] : null,
+        });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
     }
 };
 
-module.exports = { getSavingsGoal,updateSavingsGoal,updateUserProfile };
+module.exports = { getSavingsGoal,updateSavingsGoal,updateUserProfile,getUserProfile };
+

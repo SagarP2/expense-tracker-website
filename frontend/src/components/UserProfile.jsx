@@ -1,9 +1,9 @@
 import { useState,useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { X } from 'lucide-react';
+import { Modal } from './ui/Modal';
+import { User,Mail,Phone,Edit2 } from 'lucide-react';
 
 export function UserProfile({ isOpen,onClose }) {
     const { user,updateProfile } = useAuth();
@@ -43,116 +43,115 @@ export function UserProfile({ isOpen,onClose }) {
     }
 
 
-    return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="glass rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-text-muted hover:text-text transition-colors"
-                >
-                    <X size={20} />
-                </button>
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="User Profile"
+            description="Manage your personal information"
+        >
+            <div className="text-center mb-8">
+                <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold text-white shadow-lg shadow-primary/30">
+                    {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <h2 className="text-2xl font-bold text-text">
+                    @{user?.username || 'username'}
+                </h2>
+            </div>
 
-                <div className="text-center mb-6">
-                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary">
-                        {user?.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <h2 className="text-xl font-bold text-text">
-                        User Profile
-                    </h2>
+            {error && (
+                <div className="bg-danger/10 text-danger p-3 rounded-xl mb-6 text-sm font-medium border border-danger/20">
+                    {error}
+                </div>
+            )}
+
+            {success && (
+                <div className="bg-success/10 text-success p-3 rounded-xl mb-6 text-sm font-medium border border-success/20">
+                    {success}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                        <User size={12} /> Name
+                    </label>
+                    {isEditing ? (
+                        <Input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) =>
+                                setFormData({ ...formData,name: e.target.value })
+                            }
+                            required
+                            className="py-3"
+                        />
+                    ) : (
+                        <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group">
+                            {user?.name}
+                            <Edit2 size={14} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    )}
                 </div>
 
-                {error && (
-                    <div className="bg-red-50 text-danger p-3 rounded-lg mb-4 text-sm">
-                        {error}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                        <Mail size={12} /> Email
+                    </label>
+                    <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border opacity-70">
+                        {user?.email}
                     </div>
-                )}
+                </div>
 
-                {success && (
-                    <div className="bg-green-50 text-green-600 p-3 rounded-lg mb-4 text-sm">
-                        {success}
-                    </div>
-                )}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                        <Phone size={12} /> Mobile Number
+                    </label>
+                    {isEditing ? (
+                        <Input
+                            type="tel"
+                            value={formData.mobileNumber}
+                            onChange={(e) =>
+                                setFormData({ ...formData,mobileNumber: e.target.value })
+                            }
+                            placeholder="Add mobile number"
+                            className="py-3"
+                        />
+                    ) : (
+                        <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group">
+                            {user?.mobileNumber || <span className="text-text-muted italic">Not set</span>}
+                            <Edit2 size={14} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    )}
+                </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-text-muted mb-1">
-                            Name
-                        </label>
-                        {isEditing ? (
-                            <Input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) =>
-                                    setFormData({ ...formData,name: e.target.value })
-                                }
-                                required
-                            />
-                        ) : (
-                            <p className="text-text p-2 bg-white/50 rounded-lg border border-white/20">
-                                {user?.name}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-muted mb-1">
-                            Email
-                        </label>
-                        <p className="text-text p-2 bg-white/50 rounded-lg border border-white/20">
-                            {user?.email}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-muted mb-1">
-                            Mobile Number
-                        </label>
-                        {isEditing ? (
-                            <Input
-                                type="tel"
-                                value={formData.mobileNumber}
-                                onChange={(e) =>
-                                    setFormData({ ...formData,mobileNumber: e.target.value })
-                                }
-                                placeholder="Add mobile number"
-                            />
-                        ) : (
-                            <p className="text-text p-2 bg-white/50 rounded-lg border border-white/20">
-                                {user?.mobileNumber || 'Not set'}
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="flex gap-3 mt-6">
-                        {isEditing ? (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={() => setIsEditing(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" className="flex-1">
-                                    Save Changes
-                                </Button>
-                            </>
-                        ) : (
+                <div className="flex gap-3 mt-8 pt-2">
+                    {isEditing ? (
+                        <>
                             <Button
                                 type="button"
-                                className="w-full"
-                                onClick={() => setIsEditing(true)}
+                                variant="outline"
+                                className="flex-1 py-3"
+                                onClick={() => setIsEditing(false)}
                             >
-                                Edit Profile
+                                Cancel
                             </Button>
-                        )}
-                    </div>
-                </form>
-            </div>
-        </div>,
-        document.body
+                            <Button type="submit" className="flex-1 py-3 shadow-lg shadow-primary/25">
+                                Save Changes
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            type="button"
+                            className="w-full py-3 shadow-lg shadow-primary/25"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            Edit Profile
+                        </Button>
+                    )}
+                </div>
+            </form>
+        </Modal>
     );
 }
 

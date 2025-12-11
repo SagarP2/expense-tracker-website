@@ -1,6 +1,9 @@
 const Transaction = require('../models/Transaction');
+const { checkGoalStatus } = require('../utils/goalChecker');
 
 const getTransactions = async (req,res) => {
+    // req.user is guaranteed by protect middleware
+
     const { type,category,startDate,endDate } = req.query;
     let query = { user: req.user._id };
 
@@ -28,6 +31,9 @@ const addTransaction = async (req,res) => {
         date,
     });
 
+    // Check goal status
+    await checkGoalStatus(req.user._id);
+
     res.status(201).json(transaction);
 };
 
@@ -35,11 +41,20 @@ const updateTransaction = async (req,res) => {
     const transaction = await Transaction.findById(req.params.id);
 
     if (!transaction) {
-        return res.status(404).json({ message: 'Transaction not found' });
+        res.status(404);
+        throw new Error('Transaction not found');
     }
 
+    // Check for user
+    if (!req.user) {
+        res.status(401);
+        throw new Error('User not found');
+    }
+
+    // Make sure logged in user matches the transaction user
     if (transaction.user.toString() !== req.user._id.toString()) {
-        return res.status(401).json({ message: 'User not authorized' });
+        res.status(401);
+        throw new Error('User not authorized');
     }
 
     const updatedTransaction = await Transaction.findByIdAndUpdate(
@@ -48,6 +63,9 @@ const updateTransaction = async (req,res) => {
         { new: true }
     );
 
+    // Check goal status
+    await checkGoalStatus(req.user._id);
+
     res.json(updatedTransaction);
 };
 
@@ -55,14 +73,28 @@ const deleteTransaction = async (req,res) => {
     const transaction = await Transaction.findById(req.params.id);
 
     if (!transaction) {
-        return res.status(404).json({ message: 'Transaction not found' });
+        res.status(404);
+        throw new Error('Transaction not found');
     }
 
-    if (transaction.user.toString() !== req.user._id.toString()) {
-        return res.status(401).json({ message: 'User not authorized' });
+    // Check for user
+    if (!req.user) {
+        res.status(401);
+        throw new Error('User not found');
     }
+
+    // Make sure logged in user matches the transaction user
+    if (transaction.user.toString() !== req.user._id.toString()) {
+        res.status(401);
+        throw new Error('User not authorized');
+    }
+
 
     await transaction.deleteOne();
+
+    // Check goal status
+    await checkGoalStatus(req.user._id);
+
     res.json({ message: 'Transaction removed' });
 };
 

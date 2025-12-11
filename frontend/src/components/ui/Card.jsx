@@ -1,11 +1,11 @@
 import { twMerge } from 'tailwind-merge';
 
-export function Card({ children, className, hover = false, ...props }) {
+export function Card({ children,className,hover = false,...props }) {
   return (
-    <div 
+    <div
       className={twMerge(
-        'glass rounded-2xl p-6',
-        hover && 'card-hover',
+        'bg-surface border border-border rounded-2xl p-6 shadow-card',
+        hover && 'card-hover cursor-pointer',
         className
       )}
       {...props}
