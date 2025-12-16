@@ -25,7 +25,43 @@ import {
 } from '../../services/collabApi';
 import { AlertModal } from '../../components/ui/AlertModal';
 import { PaymentModal } from '../../components/PaymentModal';
-import { MiniStatsStrip } from '../../components/DashboardWidgets';
+import { MiniStatsStrip,WeeklyActivityWidget,CategoryHighlightWidget,IncomeExpenseBreakdownWidget,CategoryRadialWidget,SpendingPatternWidget } from '../../components/DashboardWidgets';
+import { Cell,ResponsiveContainer,Tooltip,BarChart,Bar,XAxis,YAxis,CartesianGrid,PieChart,Pie } from 'recharts';
+import { getCategoryHighlight } from '../../utils/dashboardUtils';
+
+const CustomXAxisTick = ({ x,y,payload }) => {
+  const MAX_LENGTH = 10;
+  let text = payload.value;
+  let lines = [];
+
+  if (text.length > MAX_LENGTH && text.includes(' ')) {
+    const words = text.split(' ');
+    let currentLine = words[0];
+    for (let i = 1; i < words.length; i++) {
+      if ((currentLine + ' ' + words[i]).length <= MAX_LENGTH) {
+        currentLine += ' ' + words[i];
+      } else {
+        lines.push(currentLine);
+        currentLine = words[i];
+      }
+    }
+    lines.push(currentLine);
+  } else {
+    lines = [text];
+  }
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={10} dy={10} textAnchor="middle" fill="#94a3b8" fontSize={10} fontWeight={500}>
+        {lines.map((line,index) => (
+          <tspan x={0} dy={index === 0 ? 0 : 12} key={index}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+};
 
 // ... (inside component)
 
@@ -53,7 +89,7 @@ import {
   X,
   Wallet
 } from 'lucide-react';
-import { PieChart,Pie,Cell,ResponsiveContainer,Tooltip } from 'recharts';
+// Recharts import consolidated at the top
 import clsx from 'clsx';
 
 const computeSettlement = (userA,userB,settlements = { userA_paid: 0,userA_received: 0,userB_paid: 0,userB_received: 0 }) => {
@@ -83,14 +119,55 @@ const computeSettlement = (userA,userB,settlements = { userA_paid: 0,userA_recei
       payer = 'userB';
       receiver = 'userA';
       owedAmount = Math.abs(userABalance);
-      final_statement = `${userB.name} Paid To ${userA.name} ₹${formatCurrency(owedAmount).replace('₹','')}`;
     } else {
       // User A paid less than split, so A owes B
       payer = 'userA';
       receiver = 'userB';
       owedAmount = Math.abs(userABalance);
-      final_statement = `${userA.name} Paid To ${userB.name} ₹${formatCurrency(owedAmount).replace('₹','')}`;
     }
+
+    // Name formatting logic
+    const cleanName = (name) => name ? name.trim().split(/\s+/) : ['',''];
+    // Identify payer/receiver objects
+    const payerObj = payer === 'userA' ? userA : userB;
+    const receiverObj = receiver === 'userA' ? userA : userB;
+
+    const [payerFirst,...payerRest] = cleanName(payerObj.name);
+    const payerSurname = payerRest.join(' ');
+
+    const [receiverFirst,...receiverRest] = cleanName(receiverObj.name);
+    const receiverSurname = receiverRest.join(' ');
+
+    let displayPayer = payerFirst;
+    let displayReceiver = receiverFirst;
+
+    // Check for first name collision
+    if (payerFirst.toLowerCase() === receiverFirst.toLowerCase()) {
+      const hasPayerSurname = payerSurname.length > 0;
+      const hasReceiverSurname = receiverSurname.length > 0;
+
+      if (!hasPayerSurname && !hasReceiverSurname) {
+        displayPayer = payerObj.name;
+        displayReceiver = receiverObj.name;
+      } else {
+        const pLen = hasPayerSurname ? payerSurname.length : Number.MAX_SAFE_INTEGER;
+        const rLen = hasReceiverSurname ? receiverSurname.length : Number.MAX_SAFE_INTEGER;
+
+        if (pLen < rLen) {
+          displayPayer = payerSurname;
+          displayReceiver = receiverFirst;
+        } else if (rLen < pLen) {
+          displayReceiver = receiverSurname;
+          displayPayer = payerFirst; // Ensure other user shows first name
+        } else {
+          // Fallback for equality
+          displayPayer = payerObj.name;
+          displayReceiver = receiverObj.name;
+        }
+      }
+    }
+
+    final_statement = `${displayPayer} Paid To ${displayReceiver} ₹${formatCurrency(owedAmount).replace('₹','')}`;
   }
 
   return {
@@ -127,6 +204,7 @@ export default function CollaborationDashboard() {
   const [showPaymentModal,setShowPaymentModal] = useState(false);
   const [paymentLoading,setPaymentLoading] = useState(false);
   const [deletionLoading,setDeletionLoading] = useState(false);
+  const [dashboardView,setDashboardView] = useState('overview'); // 'overview' or 'transactions'
   const [filter,setFilter] = useState({
     userId: '',
     search: '',
@@ -152,6 +230,50 @@ export default function CollaborationDashboard() {
     message: '',
     type: 'info' // 'success', 'error', 'info'
   });
+
+  const [categoryColors,setCategoryColors] = useState(() => {
+    try {
+      const saved = localStorage.getItem('expenseTracker_categoryColors');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const COLORS = [
+    '#2563eb','#eab308','#8b5cf6','#ec4899','#06b6d4','#f97316',
+    '#14b8a6','#f59e0b','#6366f1','#84cc16','#a855f7','#fb923c',
+    '#0ea5e9','#facc15','#d946ef','#10b981','#3b82f6','#fbbf24',
+    '#8b5a3c','#64748b','#0891b2','#ca8a04','#7c3aed','#dc2626',
+    '#059669','#4f46e5'
+  ];
+
+  useEffect(() => {
+    if (!transactions.length) return;
+
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const uniqueCategories = [...new Set(expenses.map(t => t.category))];
+
+    setCategoryColors(prevColors => {
+      const newColors = { ...prevColors };
+      let hasChanges = false;
+      let nextColorIndex = Object.keys(prevColors).length;
+
+      uniqueCategories.forEach(category => {
+        if (!newColors[category]) {
+          newColors[category] = COLORS[nextColorIndex % COLORS.length];
+          nextColorIndex++;
+          hasChanges = true;
+        }
+      });
+
+      if (hasChanges) {
+        localStorage.setItem('expenseTracker_categoryColors',JSON.stringify(newColors));
+        return newColors;
+      }
+      return prevColors;
+    });
+  },[transactions]);
 
   const defaultCategories = {
     expense: ['Food','Rent','Bill','Traveling','Personal','Other'],
@@ -859,6 +981,26 @@ export default function CollaborationDashboard() {
 
   const displayBalance = calculateSummary();
 
+  // Process data for charts
+  const categoryData = filteredTransactions
+    .filter(t => t.type === 'expense' && t.category !== 'Settlement')
+    .reduce((acc,curr) => {
+      const existing = acc.find(item => item.name === curr.category);
+      if (existing) {
+        existing.value += curr.amount;
+      } else {
+        acc.push({ name: curr.category,value: curr.amount });
+      }
+      return acc;
+    },[])
+    .reverse()
+    .map((cat) => ({
+      ...cat,
+      color: categoryColors[cat.name] || '#cbd5e1' // Fallback color
+    }));
+
+  const categoryHighlight = getCategoryHighlight(filteredTransactions);
+
   // Chart Data (Expense Distribution) - Optional, but if we keep it, use month data
   const chartData = [
     { name: balance.userA.name,value: displayBalance.userA.total_expense,color: '#2563eb' },
@@ -869,7 +1011,7 @@ export default function CollaborationDashboard() {
   const miniStats = getMiniStats(filteredTransactions,displayBalance.total_expense);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-surface/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-sm">
         <div className="flex items-center gap-4">
@@ -893,69 +1035,60 @@ export default function CollaborationDashboard() {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
-          <Button onClick={() => {
-            setEditingId(null);
-            setLockedType('income');
-            setFormData({
-              amount: '',
-              type: 'income',
-              category: '',
-              customCategory: '',
-              description: '',
-              date: new Date().toISOString().split('T')[0],
-            });
-            setShowModal(true);
-          }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-success hover:bg-success/90 text-white border-none">
-            <Plus size={20} />
-            Add Income
-          </Button>
-          <Button onClick={() => {
-            setEditingId(null);
-            setLockedType('expense');
-            setFormData({
-              amount: '',
-              type: 'expense',
-              category: '',
-              customCategory: '',
-              description: '',
-              date: new Date().toISOString().split('T')[0],
-            });
-            setShowModal(true);
-          }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white border-none">
-            <Plus size={20} />
-            Add Expense
-          </Button>
-          {/* Pay / Request Buttons (Moved from Settlement Card) */}
-          {displayBalance.owedAmount > 0 && (
-            <>
-              {/* Pay Now Button */}
-              {user && displayBalance.payer && displayBalance.payer.id === user._id && (
-                <Button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-blue-600 hover:bg-blue-700 text-white border-none"
-                >
-                  <Wallet size={18} />
-                  Pay Now
-                </Button>
+
+
+
+        <div className="flex items-center gap-2 bg-surface p-1.5 rounded-xl border border-border shadow-sm w-full sm:w-auto">
+          <div className="flex bg-neutral-100 rounded-lg p-1">
+            <button
+              onClick={() => setFilter(prev => ({ ...prev,viewMode: 'month' }))}
+              className={clsx(
+                "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
               )}
-              {/* Request Payment Button */}
-              {user && displayBalance.receiver && displayBalance.receiver.id === user._id && (
-                <Button
-                  onClick={handleRequestSettlement}
-                  disabled={collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01}
-                  className={`flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-blue-600 hover:bg-blue-700 text-white border-none ${collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
-                    ? 'opacity-70 cursor-not-allowed'
-                    : ''
-                    }`}
-                >
-                  <Wallet size={18} />
-                  {collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
-                    ? 'Request Sent'
-                    : 'Request Payment'}
-                </Button>
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setFilter(prev => ({ ...prev,viewMode: 'year' }))}
+              className={clsx(
+                "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
               )}
-            </>
+            >
+              Year
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-border mx-1"></div>
+
+          {/* Date Selection */}
+
+          {filter.viewMode === 'month' ? (
+            <div className="relative flex items-center">
+              <Calendar size={16} className="absolute left-2 text-text-muted pointer-events-none" />
+              <input
+                type="month"
+                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
+                value={filter.month}
+                onChange={(e) => setFilter({ ...filter,month: e.target.value })}
+                onKeyDown={(e) => e.preventDefault()}
+              />
+            </div>
+          ) : (
+            <div className="relative flex items-center">
+              <Calendar size={16} className="absolute left-2 text-text-muted pointer-events-none" />
+              <select
+                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
+                value={filter.year}
+                onChange={(e) => setFilter({ ...filter,year: e.target.value })}
+              >
+                {Array.from({ length: 10 },(_,i) => new Date().getFullYear() - i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+
+            </div>
           )}
         </div>
       </div>
@@ -1129,19 +1262,54 @@ export default function CollaborationDashboard() {
                 {displayBalance.final_statement}
               </p>
             </div>
-            {displayBalance.owedAmount > 0 && (
-              <div className="mt-3" >
-                <p className="text-blue-100 dark:text-text-muted text-sm mb-2">
-                  Amount: {formatCurrency(displayBalance.owedAmount)}
-                </p>
-                {/* Show Pay/Request buttons moved to header */}
-                {collaboration.settlementRequest?.requestedBy && (
-                  <p className="text-xs text-blue-200 mb-1">
-                    Request Pending: {formatCurrency(collaboration.settlementRequest.amount)}
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="flex flex-col">
+              {displayBalance.owedAmount > 0 && (
+                <div className="mt-4 flex gap-4 w-full justify-between">
+                  {/* Pending Request Status */}
+                  {collaboration.settlementRequest?.requestedBy && (
+                    <p className="text-xs text-blue-200 mb-1 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      Request Pending:<br></br> {formatCurrency(collaboration.settlementRequest.amount)}
+                    </p>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 justify-end">
+                    {/* Pay Now Button */}
+                    {user && displayBalance.payer && displayBalance.payer.id === user._id && (
+                      <Button
+                        onClick={() => setShowPaymentModal(true)}
+                        size="sm"
+                        className="w-fit bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm shadow-sm"
+                      >
+                        <Wallet size={14} className="mr-1" />
+                        Pay Now
+                      </Button>
+                    )}
+
+                    {/* Request Payment Button */}
+                    {user && displayBalance.receiver && displayBalance.receiver.id === user._id && (
+                      <Button
+                        onClick={handleRequestSettlement}
+                        size="sm"
+                        disabled={collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01}
+                        className={`w-fit bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm shadow-sm ${collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
+                          ? 'opacity-50 cursor-not-allowed'
+                          : ''
+                          }`}
+                      >
+                        {collaboration.settlementRequest?.requestedBy && Math.abs(collaboration.settlementRequest.amount - displayBalance.owedAmount) < 0.01
+                          ? 'Requested'
+                          : <>
+                            <Wallet size={14} className="mr-1" />
+                            Request
+                          </>}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       </div>
@@ -1247,13 +1415,47 @@ export default function CollaborationDashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-xl font-bold flex items-center gap-2 text-text">
               <div className="w-1 h-6 bg-primary rounded-full"></div>
-              Collaboration Transactions
+              {dashboardView === 'overview' ? 'Collaboration Overview' : 'Collaboration Transactions'}
             </h3>
+            {/* View Toggle */}
+            <div className="flex bg-neutral-100 rounded-lg p-1 self-start sm:self-auto">
+              <button
+                onClick={() => setDashboardView('overview')}
+                className={clsx(
+                  "px-4 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2",
+                  dashboardView === 'overview' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
+                )}
+              >
+                <PieChartIcon size={14} />
+                Overview
+              </button>
+              <button
+                onClick={() => setDashboardView('transactions')}
+                className={clsx(
+                  "px-4 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2",
+                  dashboardView === 'transactions' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
+                )}
+              >
+                <Wallet size={14} />
+                Transactions
+              </button>
+            </div>
           </div>
 
           {/* Filters */}
           <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-surface-highlight/30 p-4 rounded-2xl border border-border mb-6">
             <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full xl:w-auto">
+              {/* Search */}
+              <div className="relative w-full xl:w-72">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search transactions..."
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:bg-surface-highlight focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                  value={filter.search}
+                  onChange={(e) => setFilter({ ...filter,search: e.target.value })}
+                />
+              </div>
               {/* User Filter */}
               <div className="relative w-full sm:w-auto col-span-1">
                 <select
@@ -1286,140 +1488,139 @@ export default function CollaborationDashboard() {
                   <Filter size={14} />
                 </div>
               </div>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center justify-center bg-surface p-1.5 rounded-xl border border-border w-full sm:w-auto col-span-1">
-                <div className="flex bg-neutral-100 rounded-lg p-1 w-full sm:w-auto">
-                  <button
-                    onClick={() => setFilter(prev => ({ ...prev,viewMode: 'month' }))}
-                    className={clsx(
-                      "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
-                      filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
-                    )}
-                  >
-                    Month
-                  </button>
-                  <button
-                    onClick={() => setFilter(prev => ({ ...prev,viewMode: 'year' }))}
-                    className={clsx(
-                      "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
-                      filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
-                    )}
-                  >
-                    Year
-                  </button>
-                </div>
-              </div>
-
-              {/* Date Selection */}
-              <div className="col-span-1 w-full sm:w-auto">
-                {filter.viewMode === 'month' && (
-                  <div className="relative w-full">
-                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-                    <input
-                      type="month"
-                      className="w-full bg-surface border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text appearance-none transition-all hover:border-primary/50"
-                      value={filter.month}
-                      onChange={(e) => setFilter({ ...filter,month: e.target.value })}
-                      onKeyDown={(e) => e.preventDefault()}
-                    />
-                  </div>
-                )}
-                {filter.viewMode === 'year' && (
-                  <div className="relative w-full">
-                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-                    <select
-                      className="w-full bg-surface border border-border rounded-xl pl-9 pr-8 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text appearance-none transition-all hover:border-primary/50 cursor-pointer"
-                      value={filter.year}
-                      onChange={(e) => setFilter({ ...filter,year: e.target.value })}
-                    >
-                      {Array.from({ length: 5 },(_,i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                      <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-currentColor"></div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Search */}
-            <div className="relative w-full xl:w-72">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:bg-surface-highlight focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
-                value={filter.search}
-                onChange={(e) => setFilter({ ...filter,search: e.target.value })}
-              />
+
+
+            <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+              <Button onClick={() => {
+                setEditingId(null);
+                setLockedType('income');
+                setFormData({
+                  amount: '',
+                  type: 'income',
+                  category: '',
+                  customCategory: '',
+                  description: '',
+                  date: new Date().toISOString().split('T')[0],
+                });
+                setShowModal(true);
+              }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-success hover:bg-success/90 text-white border-none">
+                <Plus size={20} />
+                Add Income
+              </Button>
+              <Button onClick={() => {
+                setEditingId(null);
+                setLockedType('expense');
+                setFormData({
+                  amount: '',
+                  type: 'expense',
+                  category: '',
+                  customCategory: '',
+                  description: '',
+                  date: new Date().toISOString().split('T')[0],
+                });
+                setShowModal(true);
+              }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white border-none">
+                <Plus size={20} />
+                Add Expense
+              </Button>
+              {/* Pay / Request Buttons (Moved from Settlement Card) */}
+              {/* Buttons moved to Settlement Widget */}
             </div>
           </div>
 
-          <TableResponsive
-            columns={columns}
-            data={currentTransactions}
-            renderMobileItem={renderMobileItem}
-            emptyMessage="No transactions found matching your filters."
-          />
-
-          {/* Pagination Controls */}
-          {filteredTransactions.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 mt-4 border-t border-border">
-              <div className="text-sm text-text-muted font-medium">
-                Showing <span className="text-text font-bold">{indexOfFirstTransaction + 1}</span> to <span className="text-text font-bold">{Math.min(indexOfLastTransaction,filteredTransactions.length)}</span> of <span className="text-text font-bold">{filteredTransactions.length}</span> transactions
+          {dashboardView === 'overview' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 animate-slide-up pb-2">
+              <div className="lg:col-span-2">
+                <IncomeExpenseBreakdownWidget
+                  totalIncome={filteredTransactions
+                    .filter(t => t.type === 'income' && t.category !== 'Settlement Received')
+                    .reduce((sum,t) => sum + t.amount,0)}
+                  totalExpense={filteredTransactions
+                    .filter(t => t.type === 'expense' && t.category !== 'Settlement')
+                    .reduce((sum,t) => sum + t.amount,0)}
+                  categoryData={categoryData}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1,1))}
-                  disabled={currentPage === 1}
-                  className="gap-1"
-                >
-                  <ChevronLeft size={16} /> Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5,totalPages) },(_,i) => {
-                    // Simple pagination logic for display (can be improved)
-                    let pageNum = i + 1;
-                    if (totalPages > 5 && currentPage > 3) {
-                      pageNum = currentPage - 2 + i;
-                      if (pageNum > totalPages) pageNum = totalPages - (4 - i);
-                    }
-                    // Ensure pageNum is valid
-                    if (pageNum < 1) pageNum = 1;
-                    if (pageNum > totalPages) return null;
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={clsx(
-                          "w-8 h-8 rounded-lg text-sm font-bold transition-all",
-                          currentPage === pageNum
-                            ? "bg-primary text-white shadow-md"
-                            : "text-text-muted hover:bg-neutral-100"
-                        )}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+              <div className="lg:col-span-2 flex flex-col gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[200px]">
+                  <SpendingPatternWidget data={categoryData} />
+                  <CategoryHighlightWidget category={categoryHighlight} />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1,totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="gap-1"
-                >
-                  Next <ChevronRight size={16} />
-                </Button>
+                <div className="flex-1 min-h-[200px]">
+                  <WeeklyActivityWidget
+                    transactions={filteredTransactions}
+                    selectedMonth={filter.month}
+                    selectedYear={filter.year}
+                  />
+                </div>
               </div>
             </div>
+          ) : (
+            <>
+              <TableResponsive
+                columns={columns}
+                data={currentTransactions}
+                renderMobileItem={renderMobileItem}
+                emptyMessage="No transactions found matching your filters."
+              />
+
+              {/* Pagination Controls */}
+              {filteredTransactions.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 mt-4 border-t border-border">
+                  <div className="text-sm text-text-muted font-medium">
+                    Showing <span className="text-text font-bold">{indexOfFirstTransaction + 1}</span> to <span className="text-text font-bold">{Math.min(indexOfLastTransaction,filteredTransactions.length)}</span> of <span className="text-text font-bold">{filteredTransactions.length}</span> transactions
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1,1))}
+                      disabled={currentPage === 1}
+                      className="gap-1"
+                    >
+                      <ChevronLeft size={16} /> Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5,totalPages) },(_,i) => {
+                        let pageNum = i + 1;
+                        if (totalPages > 5 && currentPage > 3) {
+                          pageNum = currentPage - 2 + i;
+                          if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                        }
+                        if (pageNum < 1) pageNum = 1;
+                        if (pageNum > totalPages) return null;
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={clsx(
+                              "w-8 h-8 rounded-lg text-sm font-bold transition-all",
+                              currentPage === pageNum
+                                ? "bg-primary text-white shadow-md"
+                                : "text-text-muted hover:bg-neutral-100"
+                            )}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1,totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="gap-1"
+                    >
+                      Next <ChevronRight size={16} />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </div >

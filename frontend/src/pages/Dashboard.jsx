@@ -244,7 +244,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className="space-y-5 animate-fade-in pb-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface/40 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-sm">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Dashboard</h2>

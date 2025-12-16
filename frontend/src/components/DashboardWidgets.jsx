@@ -5,7 +5,11 @@ import {
     TrendingUp,TrendingDown,Activity,Target,
     Lightbulb,Zap,Award,ArrowRight,Wallet
 } from 'lucide-react';
-import { BarChart,Bar,XAxis,Tooltip,ResponsiveContainer,Cell } from 'recharts';
+import {
+    BarChart,Bar,XAxis,Tooltip,ResponsiveContainer,Cell,CartesianGrid,
+    RadialBarChart,RadialBar,Legend,
+    Radar,RadarChart,PolarGrid,PolarAngleAxis,PolarRadiusAxis
+} from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 
 const useChartTheme = () => {
@@ -24,7 +28,7 @@ const useChartTheme = () => {
 };
 
 export const MiniStatsStrip = ({ data }) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-slide-up">
         <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
             <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Avg. Daily Spend</p>
             <div className="flex items-end justify-between mt-2">
@@ -448,13 +452,223 @@ export const CategoryHighlightWidget = ({ category }) => {
     if (!category) return null;
 
     return (
-        <Card className="h-full p-5 bg-gradient-to-br from-orange-50/50 to-surface dark:bg-none dark:bg-surface border-border shadow-soft flex flex-col justify-center items-center text-center">
+        <Card className="h-full p-5 bg-gradient-to-br from-orange-50/50 to-surface dark:bg-none dark:bg-surface border-border shadow-soft flex flex-col justify-center items-center text-center flex-wrap  ">
             <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 mb-3 shadow-sm">
                 <Award size={20} />
             </div>
             <h3 className="text-[10px] font-bold text-orange-900/60 uppercase tracking-wider mb-1">Top Category</h3>
-            <p className="text-sm font-bold text-orange-950 mb-1 truncate max-w-full px-2">{category.name}</p>
+            <p className="text-sm font-bold text-orange-950 mb-1 truncate max-w-full px-2">Your highest spending is in <br></br>{category.name}.</p>
             <p className="text-xl font-black text-orange-600">{formatCurrency(category.amount)}</p>
+        </Card>
+    );
+
+};
+
+// Custom X Axis Tick for the breakdown chart
+const CustomXAxisTick = ({ x,y,payload,theme }) => {
+    const MAX_LENGTH = 10;
+    let text = payload.value;
+    let lines = [];
+
+    if (text.length > MAX_LENGTH && text.includes(' ')) {
+        const words = text.split(' ');
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+            if ((currentLine + ' ' + words[i]).length <= MAX_LENGTH) {
+                currentLine += ' ' + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+    } else {
+        lines = [text];
+    }
+
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <text x={0} y={10} dy={10} textAnchor="middle" fill={theme?.text || "#94a3b8"} fontSize={10} fontWeight={500}>
+                {lines.map((line,index) => (
+                    <tspan x={0} dy={index === 0 ? 0 : 12} key={index}>
+                        {line}
+                    </tspan>
+                ))}
+            </text>
+        </g>
+    );
+};
+
+export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,categoryData }) => {
+    const chartTheme = useChartTheme();
+
+    return (
+        <Card className="h-[470px] flex flex-col bg-gradient-to-b from-surface to-neutral-50/30 dark:bg-none dark:bg-surface border-border shadow-lg">
+            <div className="flex items-center justify-between mb-8 p-6 pb-0">
+                <h3 className="text-lg font-bold flex items-center gap-3 text-text">
+                    <div className="w-1 h-6 bg-gradient-to-b from-primary to-blue-600 rounded-full shadow-sm"></div>
+                    Income & Expense Breakdown
+                </h3>
+                <div className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider rounded-full border border-primary/10">
+                    Overview
+                </div>
+            </div>
+            <div className="flex-1 min-h-0 px-6">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                        data={[
+                            { name: 'Total Income',value: totalIncome,type: 'income' },
+                            { name: 'Total Expense',value: totalExpense,type: 'expense' }
+                        ].filter(item => item.value > 0).concat(
+                            categoryData.map((cat) => ({
+                                name: cat.name,
+                                value: cat.value,
+                                type: 'category',
+                                color: cat.color
+                            }))
+                        )}
+                        margin={{ top: 20,right: 10,left: -20,bottom: 0 }}
+                    >
+                        <defs>
+                            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#4ade80" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#22c55e" stopOpacity={1} />
+                            </linearGradient>
+                            <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#ef4444" stopOpacity={1} />
+                            </linearGradient>
+                            {categoryData.map((cat,index) => (
+                                <linearGradient key={`gradient-${index}`} id={`gradient-${cat.name.replace(/\s+/g,'-')}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={cat.color} stopOpacity={0.8} />
+                                    <stop offset="100%" stopColor={cat.color} stopOpacity={1} />
+                                </linearGradient>
+                            ))}
+                            <filter id="shadow" height="200%">
+                                <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000000" floodOpacity="0.1" />
+                            </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.grid} />
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={<CustomXAxisTick theme={chartTheme} />}
+                            interval={0}
+                            height={60}
+                        />
+                        <Tooltip
+                            cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                            formatter={(value) => formatCurrency(value)}
+                            contentStyle={{
+                                backgroundColor: chartTheme.tooltipBg,
+                                borderRadius: '16px',
+                                border: `1px solid ${chartTheme.tooltipBorder}`,
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                backdropFilter: 'blur(10px)',
+                                padding: '12px 16px',
+                                color: chartTheme.tooltipText
+                            }}
+                            itemStyle={{ color: chartTheme.tooltipText,fontWeight: 600,fontSize: '13px' }}
+                            labelStyle={{ color: chartTheme.text }}
+                        />
+                        <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={32} filter="url(#shadow)">
+                            {
+                                [
+                                    { name: 'Total Income',value: totalIncome,type: 'income' },
+                                    { name: 'Total Expense',value: totalExpense,type: 'expense' }
+                                ].filter(item => item.value > 0).concat(
+                                    categoryData.map((cat) => ({
+                                        name: cat.name,
+                                        value: cat.value,
+                                        type: 'category',
+                                        color: cat.color
+                                    }))
+                                ).map((entry,index) => {
+                                    let fillUrl;
+                                    if (entry.type === 'income') fillUrl = 'url(#incomeGradient)';
+                                    else if (entry.type === 'expense') fillUrl = 'url(#expenseGradient)';
+                                    else fillUrl = `url(#gradient-${entry.name.replace(/\s+/g,'-')})`;
+
+                                    return <Cell key={`cell-${index}`} fill={fillUrl} strokeWidth={0} />;
+                                })
+                            }
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="mt-2 px-4 pb-4 text-[10px] text-text-muted text-center italic">
+                Note: The expense bar depends on all category-wise expenses.
+            </div>
+        </Card>
+    );
+};
+
+export const CategoryRadialWidget = ({ data }) => {
+    const chartTheme = useChartTheme();
+    // Filter out categories with 0 value, sort by value descending, take top 5
+    const chartData = data
+        .filter(item => item.value > 0)
+        .sort((a,b) => b.value - a.value)
+        .slice(0,5)
+        .map(item => ({
+            name: item.name,
+            value: item.value,
+            fill: item.color
+        }));
+
+};
+
+export const SpendingPatternWidget = ({ data }) => {
+    const chartTheme = useChartTheme();
+
+    const chartData = data
+        .filter(item => item.value > 0)
+        .slice(0,6); // Max 6 categories for cleaner radar
+
+    return (
+        <Card className="h-full p-5 bg-surface border-border shadow-soft flex flex-col relative overflow-hidden">
+            <h3 className="text-sm font-bold text-text mb-4 uppercase tracking-wider flex items-center gap-2 relative z-10">
+                <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                Spending Pattern
+            </h3>
+
+            <div className="flex-1 min-h-0 relative z-10">
+                <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                        <PolarGrid gridType="polygon" stroke={chartTheme.grid} />
+                        <PolarAngleAxis
+                            dataKey="name"
+                            tick={{ fill: chartTheme.text,fontSize: 10,fontWeight: 600 }}
+                        />
+                        <PolarRadiusAxis angle={30} domain={[0,'auto']} tick={false} axisLine={false} />
+                        <Radar
+                            name="Spending"
+                            dataKey="value"
+                            stroke="#8b5cf6"
+                            strokeWidth={2}
+                            fill="#8b5cf6"
+                            fillOpacity={0.4}
+                        />
+                        <Tooltip
+                            cursor={false}
+                            contentStyle={{
+                                backgroundColor: chartTheme.tooltipBg,
+                                borderRadius: '12px',
+                                border: `1px solid ${chartTheme.tooltipBorder}`,
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                padding: '8px 12px',
+                            }}
+                            itemStyle={{ color: chartTheme.tooltipText,fontSize: '12px',fontWeight: 600 }}
+                            formatter={(value) => formatCurrency(value)}
+                        />
+                    </RadarChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Decorative background element */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -z-0 pointer-events-none"></div>
         </Card>
     );
 };

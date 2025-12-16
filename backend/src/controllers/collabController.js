@@ -145,6 +145,30 @@ exports.getMyCollaborations = async (req,res) => {
         .populate('createdBy','name email')
         .sort({ createdAt: -1 });
 
+    // Check and clear expired requests
+    const now = new Date();
+    const updates = [];
+
+    collaborations.forEach(collab => {
+        if (collab.settlementRequest && collab.settlementRequest.requestedBy) {
+            const requestedAt = new Date(collab.settlementRequest.requestedAt);
+            const diffMs = now - requestedAt;
+            if (diffMs >= 30 * 60 * 1000) { // 30 mins
+                collab.settlementRequest = {
+                    requestedBy: null,
+                    requestedAt: null,
+                    amount: 0,
+                    method: 'UPI'
+                };
+                updates.push(collab.save());
+            }
+        }
+    });
+
+    if (updates.length > 0) {
+        await Promise.all(updates);
+    }
+
     res.json(collaborations);
 };
 
@@ -168,6 +192,25 @@ exports.getCollaboration = async (req,res) => {
     if (!isParticipant) {
         res.status(403);
         throw new Error('You are not part of this collaboration');
+    }
+
+    // Check for expired settlement request (30 mins)
+    if (collaboration.settlementRequest && collaboration.settlementRequest.requestedBy) {
+        const requestedAt = new Date(collaboration.settlementRequest.requestedAt);
+        const now = new Date();
+        const diffMs = now - requestedAt;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        if (diffMins >= 30) {
+            console.log(`⏳ Settlement request expired for collab ${id} (Age: ${diffMins} mins)`);
+            collaboration.settlementRequest = {
+                requestedBy: null,
+                requestedAt: null,
+                amount: 0,
+                method: 'UPI'
+            };
+            await collaboration.save();
+        }
     }
 
     res.json(collaboration);
