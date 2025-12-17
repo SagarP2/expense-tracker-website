@@ -1,16 +1,16 @@
-import { useRef,useEffect,useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNotifications } from '../context/NotificationContext';
-import { Bell,Check,X,Trash2 } from 'lucide-react';
+import { Bell, Check, X, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { formatDistanceToNow } from 'date-fns';
 import { acceptSettlementRequest } from '../services/collabApi';
 import { useNavigate } from 'react-router-dom';
 
-export function NotificationDropdown({ isOpen,onClose }) {
-    const { notifications,unreadCount,markAsRead,markAllAsRead,deleteAllNotifications,deleteNotification,isLoading,fetchNotifications } = useNotifications();
+export function NotificationDropdown({ isOpen, onClose }) {
+    const { notifications, unreadCount, markAsRead, markAllAsRead, deleteAllNotifications, deleteNotification, isLoading, fetchNotifications } = useNotifications();
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
-    const [actionLoading,setActionLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
     const handlePay = async (notification) => {
         if (actionLoading) return;
@@ -20,7 +20,7 @@ export function NotificationDropdown({ isOpen,onClose }) {
             if (!collabId) return;
 
             // Navigate to collaboration dashboard and trigger payment modal
-            navigate(`/collaborations/${collabId}`,{
+            navigate(`/collaborations/${collabId}`, {
                 state: { openPaymentModal: true }
             });
             onClose();
@@ -31,8 +31,62 @@ export function NotificationDropdown({ isOpen,onClose }) {
             }
 
         } catch (error) {
-            console.error("Navigation failed",error);
+            console.error("Navigation failed", error);
         }
+    };
+
+    const handleNotificationClick = (notification) => {
+        // 1. Mark as read
+        if (!notification.isRead) {
+            markAsRead(notification._id);
+        }
+
+        // 2. Determine Route
+        let path = '/dashboard'; // Default fallback
+        const { type, collabId, payload } = notification;
+        const targetCollabId = collabId || payload?.collabId;
+
+        switch (type) {
+            // Invites & Deletions -> List
+            case 'COLLAB_INVITE':
+            case 'invite_received': // Legacy
+            case 'COLLAB_DELETED':
+                path = '/collaborations';
+                break;
+
+            // Specific Collaboration Activity -> Dashboard
+            case 'invite_response':
+            case 'SETTLEMENT_REQUEST':
+            case 'settlement_request': // Legacy
+            case 'settlement_response':
+            case 'settlement_paid':
+            case 'SETTLEMENT_PARTIAL_PAYMENT':
+            case 'COLLAB_DELETE_REQUEST':
+            case 'COLLAB_DELETE_REJECTED':
+            case 'EXPENSE_ADDED': // Future proofing
+                if (targetCollabId) {
+                    path = `/collaborations/${targetCollabId}`;
+                }
+                break;
+
+            // Goals -> Dashboard (or Analysis if it existed)
+            case 'GOAL_REACHED':
+            case 'GOAL_PROGRESS':
+            case 'GOAL_REGRESSED':
+                path = '/dashboard';
+                break;
+
+            default:
+                // If we have a collabId, try to go there based on assumption it's collab related
+                if (targetCollabId) {
+                    path = `/collaborations/${targetCollabId}`;
+                }
+                break;
+        }
+
+        // 3. Navigate & Close
+        navigate(path);
+        onClose();
     };
 
     // Close on click outside
@@ -44,12 +98,12 @@ export function NotificationDropdown({ isOpen,onClose }) {
         };
 
         if (isOpen) {
-            document.addEventListener('mousedown',handleClickOutside);
+            document.addEventListener('mousedown', handleClickOutside);
         }
         return () => {
-            document.removeEventListener('mousedown',handleClickOutside);
+            document.removeEventListener('mousedown', handleClickOutside);
         };
-    },[isOpen,onClose]);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -120,7 +174,7 @@ export function NotificationDropdown({ isOpen,onClose }) {
                             >
                                 <div
                                     className="flex gap-3 cursor-pointer"
-                                    onClick={() => !notification.isRead && markAsRead(notification._id)}
+                                    onClick={() => handleNotificationClick(notification)}
                                 >
                                     <div className={`
                                         w-2 h-2 rounded-full mt-2 flex-shrink-0
@@ -131,7 +185,7 @@ export function NotificationDropdown({ isOpen,onClose }) {
                                             {notification.message}
                                         </p>
                                         <p className="text-xs text-text-tertiary">
-                                            {formatDistanceToNow(new Date(notification.createdAt),{ addSuffix: true })}
+                                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                         </p>
                                         {/* Show Reason for Partial Payments */}
                                         {notification.payload?.reason && (

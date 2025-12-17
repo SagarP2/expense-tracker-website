@@ -12,7 +12,7 @@ const {
 } = require('../services/notificationService');
 
 // Send collaboration invite
-exports.sendInvite = async (req,res) => {
+exports.sendInvite = async (req, res) => {
     // req.user guaranteed
     const { email } = req.body;
     const inviterId = req.user.id;
@@ -32,7 +32,7 @@ exports.sendInvite = async (req,res) => {
 
     // Check if collaboration already exists
     const existingCollab = await Collaboration.findOne({
-        users: { $all: [inviterId,invitedUser._id] }
+        users: { $all: [inviterId, invitedUser._id] }
     });
 
     if (existingCollab) {
@@ -43,8 +43,8 @@ exports.sendInvite = async (req,res) => {
             existingCollab.invitedUser = invitedUser._id;
             await existingCollab.save();
 
-            await existingCollab.populate('users','name email mobileNumber');
-            await existingCollab.populate('createdBy','name email');
+            await existingCollab.populate('users', 'name email mobileNumber');
+            await existingCollab.populate('createdBy', 'name email');
 
             return res.status(200).json(existingCollab);
         }
@@ -57,22 +57,22 @@ exports.sendInvite = async (req,res) => {
 
     // Create new collaboration
     const collaboration = await Collaboration.create({
-        users: [inviterId,invitedUser._id],
+        users: [inviterId, invitedUser._id],
         createdBy: inviterId,
         invitedUser: invitedUser._id,
         status: 'pending'
     });
 
-    await collaboration.populate('users','name email mobileNumber');
-    await collaboration.populate('createdBy','name email');
+    await collaboration.populate('users', 'name email mobileNumber');
+    await collaboration.populate('createdBy', 'name email');
 
-    await sendInvite(req.user,invitedUser,collaboration);
+    await sendInvite(req.user, invitedUser, collaboration);
 
     res.status(201).json(collaboration);
 };
 
 // Accept collaboration invite
-exports.acceptInvite = async (req,res) => {
+exports.acceptInvite = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -96,16 +96,16 @@ exports.acceptInvite = async (req,res) => {
     collaboration.status = 'active';
     await collaboration.save();
 
-    await collaboration.populate('users','name email mobileNumber');
-    await collaboration.populate('createdBy','name email');
+    await collaboration.populate('users', 'name email mobileNumber');
+    await collaboration.populate('createdBy', 'name email');
 
-    await sendInviteResponse(req.user,collaboration.createdBy,collaboration,'accepted');
+    await sendInviteResponse(req.user, collaboration.createdBy, collaboration, 'accepted');
 
     res.json(collaboration);
 };
 
 // Reject collaboration invite
-exports.rejectInvite = async (req,res) => {
+exports.rejectInvite = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -129,20 +129,20 @@ exports.rejectInvite = async (req,res) => {
     collaboration.status = 'rejected';
     await collaboration.save();
 
-    await sendInviteResponse(req.user,collaboration.createdBy,collaboration,'rejected');
+    await sendInviteResponse(req.user, collaboration.createdBy, collaboration, 'rejected');
 
     res.json({ message: 'Invitation rejected' });
 };
 
 // Get all collaborations for current user
-exports.getMyCollaborations = async (req,res) => {
+exports.getMyCollaborations = async (req, res) => {
     const userId = req.user.id;
 
     const collaborations = await Collaboration.find({
         users: userId
     })
-        .populate('users','name email mobileNumber')
-        .populate('createdBy','name email')
+        .populate('users', 'name email mobileNumber')
+        .populate('createdBy', 'name email')
         .sort({ createdAt: -1 });
 
     // Check and clear expired requests
@@ -153,7 +153,7 @@ exports.getMyCollaborations = async (req,res) => {
         if (collab.settlementRequest && collab.settlementRequest.requestedBy) {
             const requestedAt = new Date(collab.settlementRequest.requestedAt);
             const diffMs = now - requestedAt;
-            if (diffMs >= 30 * 60 * 1000) { // 30 mins
+            if (diffMs >= 10 * 60 * 1000) { // 10 mins
                 collab.settlementRequest = {
                     requestedBy: null,
                     requestedAt: null,
@@ -173,14 +173,14 @@ exports.getMyCollaborations = async (req,res) => {
 };
 
 // Get single collaboration details
-exports.getCollaboration = async (req,res) => {
+exports.getCollaboration = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
     const collaboration = await Collaboration.findById(id)
-        .populate('users','name email mobileNumber')
-        .populate('deletionRequest.requestedBy','name email')
-        .populate('createdBy','name email');
+        .populate('users', 'name email mobileNumber')
+        .populate('deletionRequest.requestedBy', 'name email')
+        .populate('createdBy', 'name email');
 
     if (!collaboration) {
         res.status(404);
@@ -201,7 +201,7 @@ exports.getCollaboration = async (req,res) => {
         const diffMs = now - requestedAt;
         const diffMins = Math.floor(diffMs / 60000);
 
-        if (diffMins >= 30) {
+        if (diffMins >= 2) {
             console.log(`⏳ Settlement request expired for collab ${id} (Age: ${diffMins} mins)`);
             collaboration.settlementRequest = {
                 requestedBy: null,
@@ -217,10 +217,10 @@ exports.getCollaboration = async (req,res) => {
 };
 
 // Add transaction
-exports.addTransaction = async (req,res) => {
+exports.addTransaction = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { amount,type,category,description,date } = req.body;
+    const { amount, type, category, description, date } = req.body;
 
     // Verify collaboration exists and user is part of it
     const collaboration = await Collaboration.findById(id);
@@ -250,13 +250,13 @@ exports.addTransaction = async (req,res) => {
         date: date || new Date()
     });
 
-    await transaction.populate('userId','name email');
+    await transaction.populate('userId', 'name email');
 
     res.status(201).json(transaction);
 };
 
 // Get transactions
-exports.getTransactions = async (req,res) => {
+exports.getTransactions = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -280,21 +280,21 @@ exports.getTransactions = async (req,res) => {
         const startDate = new Date(`${month}-01`);
         const endDate = new Date(startDate);
         endDate.setMonth(endDate.getMonth() + 1);
-        query.date = { $gte: startDate,$lt: endDate };
+        query.date = { $gte: startDate, $lt: endDate };
     }
 
     const transactions = await CollabTransaction.find(query)
-        .populate('userId','name email')
-        .sort({ date: -1,createdAt: -1 });
+        .populate('userId', 'name email')
+        .sort({ date: -1, createdAt: -1 });
 
     res.json(transactions);
 };
 
 // Update transaction
-exports.updateTransaction = async (req,res) => {
-    const { id,transactionId } = req.params;
+exports.updateTransaction = async (req, res) => {
+    const { id, transactionId } = req.params;
     const userId = req.user.id;
-    const { amount,type,category,description,date } = req.body;
+    const { amount, type, category, description, date } = req.body;
 
     // Verify collaboration
     const collaboration = await Collaboration.findById(id);
@@ -334,14 +334,14 @@ exports.updateTransaction = async (req,res) => {
     if (date !== undefined) transaction.date = date;
 
     await transaction.save();
-    await transaction.populate('userId','name email');
+    await transaction.populate('userId', 'name email');
 
     res.json(transaction);
 };
 
 // Delete transaction
-exports.deleteTransaction = async (req,res) => {
-    const { id,transactionId } = req.params;
+exports.deleteTransaction = async (req, res) => {
+    const { id, transactionId } = req.params;
     const userId = req.user.id;
 
     // Verify collaboration
@@ -380,11 +380,11 @@ exports.deleteTransaction = async (req,res) => {
 };
 
 // Get balance summary
-exports.getBalanceSummary = async (req,res) => {
+exports.getBalanceSummary = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
+    const collaboration = await Collaboration.findById(id).populate('users', 'name email mobileNumber');
     if (!collaboration) {
         res.status(404);
         throw new Error('Collaboration not found');
@@ -403,7 +403,7 @@ exports.getBalanceSummary = async (req,res) => {
         const startDate = new Date(`${month}-01`);
         const endDate = new Date(startDate);
         endDate.setMonth(endDate.getMonth() + 1);
-        query.date = { $gte: startDate,$lt: endDate };
+        query.date = { $gte: startDate, $lt: endDate };
     }
 
     const transactions = await CollabTransaction.find(query);
@@ -487,10 +487,10 @@ exports.getBalanceSummary = async (req,res) => {
 };
 
 // Settle payment - creates settlement transactions
-exports.settlePayment = async (req,res) => {
+exports.settlePayment = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { payerId,receiverId,amount,method,reason } = req.body;
+    const { payerId, receiverId, amount, method, reason } = req.body;
 
     // Validate input
     if (!payerId || !receiverId || !amount || !method) {
@@ -503,13 +503,13 @@ exports.settlePayment = async (req,res) => {
         throw new Error('Amount must be positive');
     }
 
-    if (!['UPI','Cash'].includes(method)) {
+    if (!['UPI', 'Cash'].includes(method)) {
         res.status(400);
         throw new Error('Invalid payment method');
     }
 
     // Get collaboration
-    const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
+    const collaboration = await Collaboration.findById(id).populate('users', 'name email mobileNumber');
     if (!collaboration) {
         res.status(404);
         throw new Error('Collaboration not found');
@@ -634,7 +634,7 @@ exports.settlePayment = async (req,res) => {
 
     res.json({
         message: 'Payment settled successfully',
-        transactions: [payerTransaction,receiverTransaction],
+        transactions: [payerTransaction, receiverTransaction],
         balance: {
             userA: {
                 id: userA._id,
@@ -675,23 +675,23 @@ exports.settlePayment = async (req,res) => {
         await Notification.findOneAndDelete({
             userId: payerId,
             payload: { $elemMatch: { settlementId: collaboration._id } }
-        }).catch(err => console.error("Failed to delete notification",err));
+        }).catch(err => console.error("Failed to delete notification", err));
 
         // Also try alternative query if payload structure differs
         await Notification.findOneAndDelete({
             userId: payerId,
             type: 'SETTLEMENT_REQUEST',
             'payload.settlementId': collaboration._id
-        }).catch(err => console.error("Failed to delete notification alt",err));
+        }).catch(err => console.error("Failed to delete notification alt", err));
 
         await collaboration.save();
     }
 
-    await sendSettlementPayment(req.user,receiverId,collaboration,amount,reason);
+    await sendSettlementPayment(req.user, receiverId, collaboration, amount, reason);
 };
 
 // Request deletion
-exports.requestDeletion = async (req,res) => {
+exports.requestDeletion = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -723,8 +723,8 @@ exports.requestDeletion = async (req,res) => {
     };
     await collaboration.save();
 
-    await collaboration.populate('users','name email mobileNumber');
-    await collaboration.populate('deletionRequest.requestedBy','name email');
+    await collaboration.populate('users', 'name email mobileNumber');
+    await collaboration.populate('deletionRequest.requestedBy', 'name email');
 
     // Notify other user
     const otherUser = collaboration.users.find(u => u._id.toString() !== userId);
@@ -746,7 +746,7 @@ exports.requestDeletion = async (req,res) => {
 };
 
 // Accept deletion
-exports.acceptDeletion = async (req,res) => {
+exports.acceptDeletion = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -794,7 +794,7 @@ exports.acceptDeletion = async (req,res) => {
 };
 
 // Reject deletion
-exports.rejectDeletion = async (req,res) => {
+exports.rejectDeletion = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -828,7 +828,7 @@ exports.rejectDeletion = async (req,res) => {
     };
     await collaboration.save();
 
-    await collaboration.populate('users','name email mobileNumber');
+    await collaboration.populate('users', 'name email mobileNumber');
 
     // Notify requester
     if (requesterId) {
@@ -850,22 +850,22 @@ exports.rejectDeletion = async (req,res) => {
 
 
 // Request settlement payment
-exports.requestSettlement = async (req,res) => {
+exports.requestSettlement = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { amount,method } = req.body;
+    const { amount, method } = req.body;
 
     if (!amount || amount <= 0) {
         res.status(400);
         throw new Error('Invalid amount');
     }
 
-    if (!['UPI','Cash'].includes(method)) {
+    if (!['UPI', 'Cash'].includes(method)) {
         res.status(400);
         throw new Error('Invalid payment method');
     }
 
-    const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
+    const collaboration = await Collaboration.findById(id).populate('users', 'name email mobileNumber');
     if (!collaboration) {
         res.status(404);
         throw new Error('Collaboration not found');
@@ -919,11 +919,11 @@ exports.requestSettlement = async (req,res) => {
 };
 
 // Accept settlement request (Pay)
-exports.acceptSettlementRequest = async (req,res) => {
+exports.acceptSettlementRequest = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const collaboration = await Collaboration.findById(id).populate('users','name email mobileNumber');
+    const collaboration = await Collaboration.findById(id).populate('users', 'name email mobileNumber');
     if (!collaboration) {
         res.status(404);
         throw new Error('Collaboration not found');
@@ -945,7 +945,7 @@ exports.acceptSettlementRequest = async (req,res) => {
         throw new Error('You cannot accept your own settlement request');
     }
 
-    const { amount,method } = collaboration.settlementRequest;
+    const { amount, method } = collaboration.settlementRequest;
     const receiverId = collaboration.settlementRequest.requestedBy.toString();
     const payerId = userId;
 
@@ -981,17 +981,17 @@ exports.acceptSettlementRequest = async (req,res) => {
     };
     await collaboration.save();
 
-    await collaboration.populate('users','name email mobileNumber');
+    await collaboration.populate('users', 'name email mobileNumber');
 
     if (receiverId) {
-        await sendSettlementPayment(req.user,receiverId,collaboration,amount);
+        await sendSettlementPayment(req.user, receiverId, collaboration, amount);
     }
 
-    res.json({ message: 'Settlement completed successfully',collaboration });
+    res.json({ message: 'Settlement completed successfully', collaboration });
 };
 
 // Reject settlement request (Cancel)
-exports.rejectSettlementRequest = async (req,res) => {
+exports.rejectSettlementRequest = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
@@ -1025,7 +1025,7 @@ exports.rejectSettlementRequest = async (req,res) => {
     };
     await collaboration.save();
 
-    await collaboration.populate('users','name email');
+    await collaboration.populate('users', 'name email');
 
     res.json(collaboration);
 };
