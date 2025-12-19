@@ -6,11 +6,11 @@ const { sendEmail } = require('../services/emailService');
 const { generateUniqueUsername } = require('../helpers/usernameHelper');
 
 const generateToken = (id) => {
-    return jwt.sign({ id },process.env.JWT_SECRET,{ expiresIn: '30d' });
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-const registerUser = async (req,res) => {
-    const { name,email,password,mobileNumber } = req.body;
+const registerUser = async (req, res) => {
+    const { name, email, password, mobileNumber } = req.body;
 
     // Check if user is already registered and verified
     const userExists = await User.findOne({ email });
@@ -35,7 +35,7 @@ const registerUser = async (req,res) => {
     const tempUser = await TempUser.create({
         name,
         email,
-        username: await generateUniqueUsername(User,name,mobileNumber), // Reserve username concept
+        username: await generateUniqueUsername(User, name, mobileNumber), // Reserve username concept
         password, // Pre-save hook will hash it
         mobileNumber,
         verificationToken
@@ -43,9 +43,9 @@ const registerUser = async (req,res) => {
 
     if (tempUser) {
         // Send verification email asynchronously
-        sendEmail(tempUser.email,'verification',verificationToken)
+        sendEmail(tempUser.email, 'verification', verificationToken)
             .catch(error => {
-                console.error('Failed to send verification email:',error);
+                console.error('Failed to send verification email:', error);
             });
 
         res.status(201).json({
@@ -58,8 +58,8 @@ const registerUser = async (req,res) => {
     }
 };
 
-const loginUser = async (req,res) => {
-    const { email,password } = req.body;
+const loginUser = async (req, res) => {
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
@@ -82,7 +82,7 @@ const loginUser = async (req,res) => {
     }
 };
 
-const verifyEmail = async (req,res) => {
+const verifyEmail = async (req, res) => {
     const { token } = req.query;
 
     const tempUser = await TempUser.findOne({ verificationToken: token });
@@ -102,7 +102,7 @@ const verifyEmail = async (req,res) => {
         mobileNumber: tempUser.mobileNumber,
         savingsGoal: 0,
         emailVerified: true,
-        monthlyGoalStatus: { isReachedNotified: false,isPendingNotified: false },
+        monthlyGoalStatus: { isReachedNotified: false, isPendingNotified: false },
         createdAt: new Date(),
         updatedAt: new Date()
     };
@@ -121,7 +121,7 @@ const verifyEmail = async (req,res) => {
 };
 
 // Check verification status (for polling)
-const checkVerifyStatus = async (req,res) => {
+const checkVerifyStatus = async (req, res) => {
     const { email } = req.query;
 
     if (!email) {
@@ -140,7 +140,7 @@ const checkVerifyStatus = async (req,res) => {
 };
 
 // Auto-login endpoint (only for verified users)
-const autoLogin = async (req,res) => {
+const autoLogin = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
@@ -173,5 +173,5 @@ const autoLogin = async (req,res) => {
     });
 };
 
-module.exports = { registerUser,loginUser,verifyEmail,checkVerifyStatus,autoLogin };
+module.exports = { registerUser, loginUser, verifyEmail, checkVerifyStatus, autoLogin };
 

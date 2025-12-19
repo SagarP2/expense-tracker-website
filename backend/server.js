@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./src/config/db');
@@ -13,10 +14,10 @@ const collabRoutes = require('./src/routes/collabRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname,'.env') });
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Verify critical env vars are loaded
-console.log('🔧 Environment check:',{
+console.log('🔧 Environment check:', {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
     SMTP_HOST: process.env.SMTP_HOST,
@@ -30,7 +31,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
-const { initSentry,Sentry } = require('./src/utils/sentry');
+const { initSentry, Sentry } = require('./src/utils/sentry');
 initSentry(app);
 const server = http.createServer(app);
 
@@ -40,7 +41,7 @@ const allowedOrigins = [
     process.env.CLIENT_URL
 ].filter(Boolean);
 
-const io = new Server(server,{
+const io = new Server(server, {
     cors: {
         origin: allowedOrigins,
         credentials: true
@@ -48,11 +49,11 @@ const io = new Server(server,{
 });
 
 // Store io instance in app to use in controllers/services
-app.set('io',io);
+app.set('io', io);
 global.io = io;
 
 // Socket.IO Middleware for Authentication
-io.use(async (socket,next) => {
+io.use(async (socket, next) => {
     try {
         const token = socket.handshake.auth.token;
         if (!token) {
@@ -60,7 +61,7 @@ io.use(async (socket,next) => {
         }
 
         const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token,process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.user = { id: decoded.id };
         next();
     } catch (error) {
@@ -68,8 +69,8 @@ io.use(async (socket,next) => {
     }
 });
 
-io.on('connection',(socket) => {
-    console.log('🔌 New client connected:',socket.id);
+io.on('connection', (socket) => {
+    console.log('🔌 New client connected:', socket.id);
 
     // Auto-join user room
     if (socket.user && socket.user.id) {
@@ -78,13 +79,23 @@ io.on('connection',(socket) => {
         console.log(`👤 User ${socket.user.id} joined room ${roomName} (Socket: ${socket.id})`);
     }
 
-    socket.on('disconnect',() => {
-        console.log('❌ Client disconnected:',socket.id);
+    socket.on('disconnect', () => {
+        console.log('❌ Client disconnected:', socket.id);
     });
 });
 
 // Security Middleware
 app.use(helmet());
+app.use(compression({
+    level: 6, // Balanced setting
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 app.use(cors({
     origin: allowedOrigins,
     credentials: true
@@ -94,26 +105,26 @@ app.use(require('./src/middleware/requestId'));
 app.use(require('./src/middleware/metrics'));
 
 const { globalLimiter } = require('./src/middleware/rateLimit');
-app.use('/api',globalLimiter);
+app.use('/api', globalLimiter);
 
 app.use(express.json());
 
 // Routes
-app.use('/',require('./src/routes/health')); // Mounts /health and /ready at root
-app.get('/metrics',async (req,res) => {
-    res.set('Content-Type',require('./src/metrics/metrics').register.contentType);
+app.use('/', require('./src/routes/health')); // Mounts /health and /ready at root
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', require('./src/metrics/metrics').register.contentType);
     res.end(await require('./src/metrics/metrics').register.metrics());
 });
-const ensureDbConnected = (req,res,next) => {
+const ensureDbConnected = (req, res, next) => {
     if (mongoose.connection.readyState === 1) return next();
-    res.status(503).json({ success: false,message: 'Database not connected',code: 'DB_NOT_READY' });
+    res.status(503).json({ success: false, message: 'Database not connected', code: 'DB_NOT_READY' });
 };
-app.use('/api',ensureDbConnected);
-app.use('/api/auth',authRoutes);
-app.use('/api/transactions',transactionRoutes);
-app.use('/api/collab',collabRoutes);
-app.use('/api/users',userRoutes);
-app.use('/api/notifications',require('./src/routes/notificationRoutes'));
+app.use('/api', ensureDbConnected);
+app.use('/api/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/collab', collabRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', require('./src/routes/notificationRoutes'));
 
 // Error handling middleware
 if (process.env.SENTRY_DSN) {
@@ -130,7 +141,11 @@ let serverInstance;
 
 // Only listen if this file is run directly (not imported)
 if (require.main === module) {
-    serverInstance = server.listen(PORT,() => console.log(`Server running on port ${PORT}`));
+    serverInstance = server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+    // Optimize Keep-Alive for low latency
+    serverInstance.keepAliveTimeout = 65000; // Slightly higher than most load balancers (e.g. AWS ALB is 60s)
+    serverInstance.headersTimeout = 66000;
 }
 
 // Graceful Shutdown
@@ -140,7 +155,7 @@ const gracefulShutdown = () => {
         serverInstance.close(() => {
             console.log('Closed out remaining connections');
             const mongoose = require('mongoose');
-            mongoose.connection.close(false,() => {
+            mongoose.connection.close(false, () => {
                 console.log('MongoDb connection closed');
                 process.exit(0);
             });
@@ -150,7 +165,7 @@ const gracefulShutdown = () => {
     }
 };
 
-process.on('SIGTERM',gracefulShutdown);
-process.on('SIGINT',gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
-module.exports = { app,server,io };
+module.exports = { app, server, io };

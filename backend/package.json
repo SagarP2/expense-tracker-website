@@ -20,6 +20,7 @@
     "bcryptjs": "^3.0.3",
     "bull": "^4.16.5",
     "bullmq": "^5.65.1",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.22.1",

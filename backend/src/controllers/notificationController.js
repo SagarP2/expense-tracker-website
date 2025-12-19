@@ -1,26 +1,28 @@
 const Notification = require('../models/Notification');
 
 // Get all notifications for user
-exports.getNotifications = async (req,res) => {
+exports.getNotifications = async (req, res) => {
     // req.user is guaranteed by protect middleware
 
-    const notifications = await Notification.find({ userId: req.user.id })
-        .sort({ createdAt: -1 })
-        .limit(50); // Limit to last 50 notifications
+    const [notifications, unreadCount] = await Promise.all([
+        Notification.find({ userId: req.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean(), // Use lean for faster reads
+        Notification.countDocuments({
+            userId: req.user.id,
+            isRead: false
+        })
+    ]);
 
-    const unreadCount = await Notification.countDocuments({
-        userId: req.user.id,
-        isRead: false
-    });
-
-    res.json({ notifications,unreadCount });
+    res.json({ notifications, unreadCount });
 };
 
 // Mark notification as read
-exports.markRead = async (req,res) => {
+exports.markRead = async (req, res) => {
     const { id } = req.params;
     const notification = await Notification.findOneAndUpdate(
-        { _id: id,userId: req.user.id },
+        { _id: id, userId: req.user.id },
         { isRead: true },
         { new: true }
     );
@@ -34,9 +36,9 @@ exports.markRead = async (req,res) => {
 };
 
 // Mark all as read
-exports.markAllRead = async (req,res) => {
+exports.markAllRead = async (req, res) => {
     await Notification.updateMany(
-        { userId: req.user.id,isRead: false },
+        { userId: req.user.id, isRead: false },
         { isRead: true }
     );
 
@@ -44,13 +46,13 @@ exports.markAllRead = async (req,res) => {
 };
 
 // Delete all notifications
-exports.deleteAllNotifications = async (req,res) => {
+exports.deleteAllNotifications = async (req, res) => {
     await Notification.deleteMany({ userId: req.user.id });
     res.json({ message: 'All notifications deleted' });
 };
 
 // Delete single notification
-exports.deleteNotification = async (req,res) => {
+exports.deleteNotification = async (req, res) => {
     const notification = await Notification.findOneAndDelete({
         _id: req.params.id,
         userId: req.user.id

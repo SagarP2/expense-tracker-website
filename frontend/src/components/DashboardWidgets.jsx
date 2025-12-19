@@ -2,13 +2,13 @@ import React from 'react';
 import { Card } from './ui/Card';
 import { formatCurrency } from '../utils/format';
 import {
-    TrendingUp,TrendingDown,Activity,Target,
-    Lightbulb,Zap,Award,ArrowRight,Wallet
+    TrendingUp, TrendingDown, Activity, Target,
+    Lightbulb, Zap, Award, ArrowRight, Wallet
 } from 'lucide-react';
 import {
-    BarChart,Bar,XAxis,Tooltip,ResponsiveContainer,Cell,CartesianGrid,
-    RadialBarChart,RadialBar,Legend,
-    Radar,RadarChart,PolarGrid,PolarAngleAxis,PolarRadiusAxis
+    BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
+    RadialBarChart, RadialBar, Legend,
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 
@@ -28,7 +28,7 @@ const useChartTheme = () => {
 };
 
 export const MiniStatsStrip = ({ data }) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-slide-up">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-slide-up">
         <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
             <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Avg. Daily Spend</p>
             <div className="flex items-end justify-between mt-2">
@@ -190,14 +190,14 @@ export const SmartInsightsWidget = ({ insight }) => {
     );
 };
 
-export const GoalTrackerWidget = ({ current,target,onUpdateGoal }) => {
-    const [isModalOpen,setIsModalOpen] = React.useState(false);
-    const [goalValue,setGoalValue] = React.useState(target);
-    const percentage = target > 0 ? Math.min(100,Math.max(0,(current / target) * 100)) : 0;
+export const GoalTrackerWidget = ({ current, target, onUpdateGoal }) => {
+    const [isModalOpen, setIsModalOpen] = React.useState(false);
+    const [goalValue, setGoalValue] = React.useState(target);
+    const percentage = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0;
 
     React.useEffect(() => {
         setGoalValue(target);
-    },[target]);
+    }, [target]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -302,34 +302,34 @@ export const GoalTrackerWidget = ({ current,target,onUpdateGoal }) => {
     );
 };
 
-import { getWeeklyActivity,getMonthlyActivity } from '../utils/dashboardUtils';
+import { getWeeklyActivity, getMonthlyActivity } from '../utils/dashboardUtils';
 
-export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }) => {
-    const [viewMode,setViewMode] = React.useState('overview'); // 'overview', 'week1', 'week2', 'week3', 'week4', 'week5', 'week6'
+export const WeeklyActivityWidget = ({ transactions, selectedMonth, selectedYear }) => {
+    const [viewMode, setViewMode] = React.useState('overview'); // 'overview', 'week1', 'week2', 'week3', 'week4', 'week5', 'week6'
 
     const data = React.useMemo(() => {
         if (viewMode === 'overview') {
             return getMonthlyActivity(transactions);
         } else {
             // Filter transactions for the selected week
-            const weekIndex = parseInt(viewMode.replace('week','')) - 1; // 0-5
+            const weekIndex = parseInt(viewMode.replace('week', '')) - 1; // 0-5
             const weekTransactions = transactions.filter(t => {
                 const tDate = new Date(t.date);
                 const day = tDate.getDate();
-                const firstDayOfMonth = new Date(tDate.getFullYear(),tDate.getMonth(),1).getDay();
+                const firstDayOfMonth = new Date(tDate.getFullYear(), tDate.getMonth(), 1).getDay();
                 const tWeekIndex = Math.floor((day + firstDayOfMonth - 1) / 7);
                 return tWeekIndex === weekIndex;
             });
             return getWeeklyActivity(weekTransactions);
         }
-    },[viewMode,transactions]);
+    }, [viewMode, transactions]);
 
     const getDateRange = () => {
         // Use selectedMonth and selectedYear if provided, otherwise use current date
-        let year,month;
+        let year, month;
         if (selectedMonth && selectedYear) {
             // selectedMonth is in YYYY-MM format
-            const [y,m] = selectedMonth.split('-');
+            const [y, m] = selectedMonth.split('-');
             year = parseInt(y);
             month = parseInt(m) - 1; // Month is 0-indexed
         } else {
@@ -338,16 +338,16 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
             month = now.getMonth();
         }
 
-        const options = { day: '2-digit',month: 'short' };
+        const options = { day: '2-digit', month: 'short' };
 
         if (viewMode === 'overview') {
-            const startDate = new Date(year,month,1);
-            const endDate = new Date(year,month + 1,0);
-            return `(${startDate.toLocaleDateString('en-GB',options)} - ${endDate.toLocaleDateString('en-GB',options)})`;
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0);
+            return `(${startDate.toLocaleDateString('en-GB', options)} - ${endDate.toLocaleDateString('en-GB', options)})`;
         }
 
-        const weekIndex = parseInt(viewMode.replace('week','')) - 1;
-        const firstDayOfMonth = new Date(year,month,1).getDay(); // 0=Sun, 6=Sat
+        const weekIndex = parseInt(viewMode.replace('week', '')) - 1;
+        const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0=Sun, 6=Sat
 
         // Calculate start date of the week
         // Week 0 starts on 1st.
@@ -359,7 +359,7 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
             startDay = 1 + (7 - firstDayOfMonth) + (weekIndex - 1) * 7;
         }
 
-        const startDate = new Date(year,month,startDay);
+        const startDate = new Date(year, month, startDay);
 
         // Calculate end date (start + 6 days, but cap at end of month, and Week 0 ends on first Sat)
         let endDay;
@@ -369,18 +369,18 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
             endDay = startDay + 6;
         }
 
-        const endDate = new Date(year,month,endDay);
-        const lastDayOfMonth = new Date(year,month + 1,0);
+        const endDate = new Date(year, month, endDay);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
 
         // Cap end date at the last day of the month
-        const finalEndDate = endDate > lastDayOfMonth ? new Date(year,month + 1,0) : endDate;
+        const finalEndDate = endDate > lastDayOfMonth ? new Date(year, month + 1, 0) : endDate;
 
         // If start date is beyond month end (e.g. Week 6 in a short month), handle gracefully
         if (startDate > lastDayOfMonth) {
             return '';
         }
 
-        return `(${startDate.toLocaleDateString('en-GB',options)} - ${finalEndDate.toLocaleDateString('en-GB',options)})`;
+        return `(${startDate.toLocaleDateString('en-GB', options)} - ${finalEndDate.toLocaleDateString('en-GB', options)})`;
     };
 
     const chartTheme = useChartTheme();
@@ -390,7 +390,7 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-text flex items-center gap-2 text-sm">
                     <Activity size={16} className="text-primary" />
-                    {viewMode === 'overview' ? 'Monthly Activity' : `Week ${viewMode.replace('week','')}`}
+                    {viewMode === 'overview' ? 'Monthly Activity' : `Week ${viewMode.replace('week', '')}`}
                     <span className="text-[10px] text-text-muted font-normal ml-1 hidden sm:inline-block">
                         {getDateRange()}
                     </span>
@@ -418,7 +418,7 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
                             dataKey="name"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 10,fill: chartTheme.text,fontWeight: 500 }}
+                            tick={{ fontSize: 10, fill: chartTheme.text, fontWeight: 500 }}
                             interval={0}
                             dy={10}
                         />
@@ -432,12 +432,12 @@ export const WeeklyActivityWidget = ({ transactions,selectedMonth,selectedYear }
                                 backgroundColor: chartTheme.tooltipBg,
                                 color: chartTheme.tooltipText
                             }}
-                            formatter={(value) => [formatCurrency(value),'Expense']}
-                            labelStyle={{ color: chartTheme.text,fontSize: '12px',marginBottom: '4px' }}
+                            formatter={(value) => [formatCurrency(value), 'Expense']}
+                            labelStyle={{ color: chartTheme.text, fontSize: '12px', marginBottom: '4px' }}
                             itemStyle={{ color: chartTheme.tooltipText }}
                         />
-                        <Bar dataKey="expense" radius={[4,4,0,0]}>
-                            {data && data.map((entry,index) => (
+                        <Bar dataKey="expense" radius={[4, 4, 0, 0]}>
+                            {data && data.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={index % 2 === 0 ? chartTheme.barPrimary : chartTheme.barSecondary} />
                             ))}
                         </Bar>
@@ -465,7 +465,7 @@ export const CategoryHighlightWidget = ({ category }) => {
 };
 
 // Custom X Axis Tick for the breakdown chart
-const CustomXAxisTick = ({ x,y,payload,theme }) => {
+const CustomXAxisTick = ({ x, y, payload, theme }) => {
     const MAX_LENGTH = 10;
     let text = payload.value;
     let lines = [];
@@ -489,7 +489,7 @@ const CustomXAxisTick = ({ x,y,payload,theme }) => {
     return (
         <g transform={`translate(${x},${y})`}>
             <text x={0} y={10} dy={10} textAnchor="middle" fill={theme?.text || "#94a3b8"} fontSize={10} fontWeight={500}>
-                {lines.map((line,index) => (
+                {lines.map((line, index) => (
                     <tspan x={0} dy={index === 0 ? 0 : 12} key={index}>
                         {line}
                     </tspan>
@@ -499,7 +499,7 @@ const CustomXAxisTick = ({ x,y,payload,theme }) => {
     );
 };
 
-export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,categoryData }) => {
+export const IncomeExpenseBreakdownWidget = ({ totalIncome, totalExpense, categoryData }) => {
     const chartTheme = useChartTheme();
 
     return (
@@ -517,8 +517,8 @@ export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,category
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={[
-                            { name: 'Total Income',value: totalIncome,type: 'income' },
-                            { name: 'Total Expense',value: totalExpense,type: 'expense' }
+                            { name: 'Total Income', value: totalIncome, type: 'income' },
+                            { name: 'Total Expense', value: totalExpense, type: 'expense' }
                         ].filter(item => item.value > 0).concat(
                             categoryData.map((cat) => ({
                                 name: cat.name,
@@ -527,7 +527,7 @@ export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,category
                                 color: cat.color
                             }))
                         )}
-                        margin={{ top: 20,right: 10,left: -20,bottom: 0 }}
+                        margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
                     >
                         <defs>
                             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -538,8 +538,8 @@ export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,category
                                 <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
                                 <stop offset="100%" stopColor="#ef4444" stopOpacity={1} />
                             </linearGradient>
-                            {categoryData.map((cat,index) => (
-                                <linearGradient key={`gradient-${index}`} id={`gradient-${cat.name.replace(/\s+/g,'-')}`} x1="0" y1="0" x2="0" y2="1">
+                            {categoryData.map((cat, index) => (
+                                <linearGradient key={`gradient-${index}`} id={`gradient-${cat.name.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor={cat.color} stopOpacity={0.8} />
                                     <stop offset="100%" stopColor={cat.color} stopOpacity={1} />
                                 </linearGradient>
@@ -569,14 +569,14 @@ export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,category
                                 padding: '12px 16px',
                                 color: chartTheme.tooltipText
                             }}
-                            itemStyle={{ color: chartTheme.tooltipText,fontWeight: 600,fontSize: '13px' }}
+                            itemStyle={{ color: chartTheme.tooltipText, fontWeight: 600, fontSize: '13px' }}
                             labelStyle={{ color: chartTheme.text }}
                         />
-                        <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={32} filter="url(#shadow)">
+                        <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={32} filter="url(#shadow)">
                             {
                                 [
-                                    { name: 'Total Income',value: totalIncome,type: 'income' },
-                                    { name: 'Total Expense',value: totalExpense,type: 'expense' }
+                                    { name: 'Total Income', value: totalIncome, type: 'income' },
+                                    { name: 'Total Expense', value: totalExpense, type: 'expense' }
                                 ].filter(item => item.value > 0).concat(
                                     categoryData.map((cat) => ({
                                         name: cat.name,
@@ -584,11 +584,11 @@ export const IncomeExpenseBreakdownWidget = ({ totalIncome,totalExpense,category
                                         type: 'category',
                                         color: cat.color
                                     }))
-                                ).map((entry,index) => {
+                                ).map((entry, index) => {
                                     let fillUrl;
                                     if (entry.type === 'income') fillUrl = 'url(#incomeGradient)';
                                     else if (entry.type === 'expense') fillUrl = 'url(#expenseGradient)';
-                                    else fillUrl = `url(#gradient-${entry.name.replace(/\s+/g,'-')})`;
+                                    else fillUrl = `url(#gradient-${entry.name.replace(/\s+/g, '-')})`;
 
                                     return <Cell key={`cell-${index}`} fill={fillUrl} strokeWidth={0} />;
                                 })
@@ -609,8 +609,8 @@ export const CategoryRadialWidget = ({ data }) => {
     // Filter out categories with 0 value, sort by value descending, take top 5
     const chartData = data
         .filter(item => item.value > 0)
-        .sort((a,b) => b.value - a.value)
-        .slice(0,5)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5)
         .map(item => ({
             name: item.name,
             value: item.value,
@@ -624,7 +624,7 @@ export const SpendingPatternWidget = ({ data }) => {
 
     const chartData = data
         .filter(item => item.value > 0)
-        .slice(0,6); // Max 6 categories for cleaner radar
+        .slice(0, 6); // Max 6 categories for cleaner radar
 
     return (
         <Card className="h-full p-5 bg-surface border-border shadow-soft flex flex-col relative overflow-hidden">
@@ -639,9 +639,9 @@ export const SpendingPatternWidget = ({ data }) => {
                         <PolarGrid gridType="polygon" stroke={chartTheme.grid} />
                         <PolarAngleAxis
                             dataKey="name"
-                            tick={{ fill: chartTheme.text,fontSize: 10,fontWeight: 600 }}
+                            tick={{ fill: chartTheme.text, fontSize: 10, fontWeight: 600 }}
                         />
-                        <PolarRadiusAxis angle={30} domain={[0,'auto']} tick={false} axisLine={false} />
+                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
                         <Radar
                             name="Spending"
                             dataKey="value"
@@ -659,7 +659,7 @@ export const SpendingPatternWidget = ({ data }) => {
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                 padding: '8px 12px',
                             }}
-                            itemStyle={{ color: chartTheme.tooltipText,fontSize: '12px',fontWeight: 600 }}
+                            itemStyle={{ color: chartTheme.tooltipText, fontSize: '12px', fontWeight: 600 }}
                             formatter={(value) => formatCurrency(value)}
                         />
                     </RadarChart>

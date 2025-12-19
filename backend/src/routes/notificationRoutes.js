@@ -11,18 +11,20 @@ const { protect } = require('../middleware/authMiddleware');
 
 const asyncHandler = require('../utils/asyncHandler');
 
+const { cache } = require('../middleware/cache');
+
 router.use(protect);
 
-router.route('/').get(asyncHandler(getNotifications));
-router.patch('/read-all',asyncHandler(markAllRead));
-router.patch('/:id/read',asyncHandler(markRead));
-router.delete('/delete-all',asyncHandler(deleteAllNotifications));
-router.delete('/:id',asyncHandler(deleteNotification));
+router.route('/').get(cache(60 * 2), asyncHandler(getNotifications));
+router.patch('/read-all', asyncHandler(markAllRead));
+router.patch('/:id/read', asyncHandler(markRead));
+router.delete('/delete-all', asyncHandler(deleteAllNotifications));
+router.delete('/:id', asyncHandler(deleteNotification));
 
 // Test queue (lazy import to avoid Redis init on startup)
-router.post('/queue-test',asyncHandler(async (req,res) => {
+router.post('/queue-test', asyncHandler(async (req, res) => {
     const { enqueueNotification } = require('../queues/notificationProducer');
-    await enqueueNotification('TEST_NOTIFICATION',req.body);
+    await enqueueNotification('TEST_NOTIFICATION', req.body);
     res.status(202).json({ message: 'Notification enqueued' });
 }));
 

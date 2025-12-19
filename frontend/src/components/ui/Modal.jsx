@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 
-export function Modal({ isOpen,onClose,title,children,className }) {
+export function Modal({ isOpen, onClose, title, description, children, className }) {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -13,7 +13,7 @@ export function Modal({ isOpen,onClose,title,children,className }) {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    },[isOpen]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -37,10 +37,15 @@ export function Modal({ isOpen,onClose,title,children,className }) {
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-border">
-                    <h2 className="text-xl font-semibold text-text">{title}</h2>
+                    <div className="flex-1 pr-4">
+                        <h2 className="text-xl font-semibold text-text">{title}</h2>
+                        {description && (
+                            <p className="mt-1 text-sm text-text-muted">{description}</p>
+                        )}
+                    </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-text-muted hover:text-text hover:bg-surface-highlight rounded-lg transition-colors"
+                        className="p-2 text-text-muted hover:text-text hover:bg-surface-highlight rounded-lg transition-colors flex-shrink-0"
                         aria-label="Close modal"
                     >
                         <X size={20} />

@@ -1137,7 +1137,7 @@ export default function CollaborationDashboard() {
 
       {/* 1. Income Summary Cards - Only show if there is income */}
       {displayBalance.total_income > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-20">
               <TrendingUp size={64} />
@@ -1192,7 +1192,7 @@ export default function CollaborationDashboard() {
       )}
 
       {/* 2. Expense Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-rose-500 to-pink-600 dark:bg-none dark:bg-surface text-white dark:text-text border-none dark:border dark:border-border shadow-glow dark:shadow-sm relative overflow-hidden p-5">
           <div className="absolute top-0 right-0 p-4 opacity-20">
             <TrendingDown size={64} />
@@ -1333,7 +1333,7 @@ export default function CollaborationDashboard() {
       />
 
       {/* 3. Savings Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-4 border border-gray-100">
           <h4 className="text-lg font-bold text-text mb-3 flex items-center gap-2">
             <div className="w-1 h-5 bg-primary rounded-full"></div>
@@ -1531,7 +1531,7 @@ export default function CollaborationDashboard() {
           </div>
 
           {dashboardView === 'overview' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 animate-slide-up pb-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-slide-up pb-2">
               <div className="lg:col-span-2">
                 <IncomeExpenseBreakdownWidget
                   totalIncome={filteredTransactions
@@ -1781,6 +1781,15 @@ export default function CollaborationDashboard() {
         onConfirm={() => handleDelete(deleteDialog.id)}
         title="Delete Transaction"
         message="Are you sure you want to delete this transaction? This action cannot be undone."
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
       />
     </div >
   );

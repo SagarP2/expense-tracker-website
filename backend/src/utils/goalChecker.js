@@ -13,9 +13,9 @@ const checkGoalStatus = async (userId) => {
 
         // Get current month string YYYY-MM
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(),now.getMonth(),1);
-        const endOfMonth = new Date(now.getFullYear(),now.getMonth() + 1,0,23,59,59);
-        const currentMonthStr = startOfMonth.toISOString().slice(0,7); // "YYYY-MM"
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        const currentMonthStr = startOfMonth.toISOString().slice(0, 7); // "YYYY-MM"
 
         // Check if month changed, if so reset notifications
         let goalStatus = user.monthlyGoalStatus || {};
@@ -37,15 +37,15 @@ const checkGoalStatus = async (userId) => {
                 $gte: startOfMonth,
                 $lte: endOfMonth
             }
-        });
+        }).select('amount type category').lean();
 
         const totalIncome = transactions
             .filter(t => t.type === 'income' && t.category !== 'Settlement Received')
-            .reduce((sum,t) => sum + t.amount,0);
+            .reduce((sum, t) => sum + t.amount, 0);
 
         const totalExpense = transactions
             .filter(t => t.type === 'expense' && t.category !== 'Settlement')
-            .reduce((sum,t) => sum + t.amount,0);
+            .reduce((sum, t) => sum + t.amount, 0);
 
         const currentSavings = totalIncome - totalExpense;
         const goalAmount = user.savingsGoal;
@@ -56,7 +56,7 @@ const checkGoalStatus = async (userId) => {
         if (currentSavings >= goalAmount) {
             // Goal Reached!
             console.log(`🏆 User ${userId} reached savings goal!`);
-            await sendGoalStatus(user,goalAmount,currentSavings);
+            await sendGoalStatus(user, goalAmount, currentSavings);
             goalStatus.isReachedNotified = true;
             goalStatus.isPendingNotified = true; // Avoid sending pending msg if we already won
             shouldSaveUser = true;
@@ -67,7 +67,7 @@ const checkGoalStatus = async (userId) => {
             // Check if we dropped from a reached state
             if (goalStatus.isReachedNotified) {
                 console.log(`📉 User ${userId} dropped below goal!`);
-                await sendGoalStatus(user,goalAmount,currentSavings,'GOAL_REGRESSED');
+                await sendGoalStatus(user, goalAmount, currentSavings, 'GOAL_REGRESSED');
 
                 // Reset reached status so they can reach it again
                 goalStatus.isReachedNotified = false;
@@ -79,7 +79,7 @@ const checkGoalStatus = async (userId) => {
 
             } else if (!goalStatus.isPendingNotified) {
                 console.log(`📉 User ${userId} goal pending notification`);
-                await sendGoalStatus(user,goalAmount,currentSavings);
+                await sendGoalStatus(user, goalAmount, currentSavings);
                 goalStatus.isPendingNotified = true;
                 shouldSaveUser = true;
             }
@@ -98,7 +98,7 @@ const checkGoalStatus = async (userId) => {
         }
 
     } catch (error) {
-        console.error('❌ Error checking goal status:',error);
+        console.error('❌ Error checking goal status:', error);
     }
 };
 

@@ -1,4 +1,4 @@
-const validate = (schema) => (req,res,next) => {
+const validate = (schema) => (req, res, next) => {
     try {
         schema.parse({
             body: req.body,
@@ -7,12 +7,14 @@ const validate = (schema) => (req,res,next) => {
         });
         next();
     } catch (err) {
+        const errors = err.errors ? err.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+        })) : [{ message: err.message }];
+
         return res.status(400).json({
             error: 'Validation Error',
-            details: err.errors.map((e) => ({
-                field: e.path.join('.'),
-                message: e.message,
-            })),
+            details: errors,
         });
     }
 };
