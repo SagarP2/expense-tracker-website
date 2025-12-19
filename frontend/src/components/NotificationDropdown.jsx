@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useRef, useEffect, useState } from 'react';
 import { useNotifications } from '../context/NotificationContext';
 import { Bell, Check, X, Trash2 } from 'lucide-react';
@@ -107,24 +108,26 @@ export function NotificationDropdown({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <>
-            {/* Mobile Backdrop */}
-            <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
+            {/* Mobile Backdrop - Starts below header */}
+            <div className="fixed inset-0 top-[60px] lg:top-16 bg-black/50 z-[99] lg:hidden animate-fade-in" onClick={onClose} />
 
-            {/* Dropdown / Mobile Sheet */}
+            {/* Dropdown / Mobile Sheet - Starts below header */}
             <div
                 ref={dropdownRef}
                 className={`
-                    fixed lg:absolute right-0 lg:right-4 top-0 lg:top-16
-                    w-full lg:w-96 h-full lg:h-[32rem]
+                    fixed right-0 top-[60px] lg:top-16 lg:right-4
+                    w-full lg:w-96 h-[calc(100vh-60px)] lg:h-[32rem]
                     bg-surface border-l lg:border border-border
                     shadow-2xl lg:rounded-xl
-                    z-50 flex flex-col
+                    z-[100] flex flex-col
                     transform transition-transform duration-300 ease-in-out
                     ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                    animate-fade-in
                 `}
             >
+
                 {/* Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between bg-surface/50 backdrop-blur-sm">
                     <div className="flex items-center gap-1">
@@ -226,6 +229,7 @@ export function NotificationDropdown({ isOpen, onClose }) {
                     )}
                 </div>
             </div >
-        </>
+        </>,
+        document.body
     );
 }

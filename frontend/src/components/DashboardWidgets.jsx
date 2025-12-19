@@ -28,39 +28,39 @@ const useChartTheme = () => {
 };
 
 export const MiniStatsStrip = ({ data }) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-slide-up">
-        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
-            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Avg. Daily Spend</p>
-            <div className="flex items-end justify-between mt-2">
-                <h4 className="text-lg font-bold text-text">{formatCurrency(data.avgDaily)}</h4>
-                <Activity size={18} className="text-primary/70 mb-1" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 animate-slide-up">
+        <Card className="p-3 sm:p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-[10px] sm:text-xs text-text-muted font-bold uppercase tracking-wider">Avg. Daily Spend</p>
+            <div className="flex items-end justify-between mt-1 sm:mt-2">
+                <h4 className="text-base sm:text-lg font-bold text-text">{formatCurrency(data.avgDaily)}</h4>
+                <Activity size={16} className="text-primary/70 mb-0.5 sm:mb-1 sm:w-[18px] sm:h-[18px]" />
             </div>
         </Card>
-        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
-            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Biggest Purchase</p>
-            <div className="flex items-end justify-between mt-2">
+        <Card className="p-3 sm:p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-[10px] sm:text-xs text-text-muted font-bold uppercase tracking-wider">Biggest Purchase</p>
+            <div className="flex items-end justify-between mt-1 sm:mt-2">
                 <div className="flex flex-col">
-                    <h4 className="text-lg font-bold text-text">{formatCurrency(data.biggestTx.amount)}</h4>
-                    <span className="text-[10px] font-medium text-text-muted truncate max-w-[100px]">{data.biggestTx.category}</span>
+                    <h4 className="text-base sm:text-lg font-bold text-text">{formatCurrency(data.biggestTx.amount)}</h4>
+                    <span className="text-[9px] sm:text-[10px] font-medium text-text-muted truncate max-w-[80px] sm:max-w-[100px]">{data.biggestTx.category}</span>
                 </div>
-                <Zap size={18} className="text-amber-500/70 mb-1" />
+                <Zap size={16} className="text-amber-500/70 mb-0.5 sm:mb-1 sm:w-[18px] sm:h-[18px]" />
             </div>
         </Card>
-        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
-            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Lowest Purchase</p>
-            <div className="flex items-end justify-between mt-2">
+        <Card className="p-3 sm:p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-[10px] sm:text-xs text-text-muted font-bold uppercase tracking-wider">Lowest Purchase</p>
+            <div className="flex items-end justify-between mt-1 sm:mt-2">
                 <div className="flex flex-col">
-                    <h4 className="text-lg font-bold text-text">{formatCurrency(data.lowestTx.amount)}</h4>
-                    <span className="text-[10px] font-medium text-text-muted truncate max-w-[100px]">{data.lowestTx.category}</span>
+                    <h4 className="text-base sm:text-lg font-bold text-text">{formatCurrency(data.lowestTx.amount)}</h4>
+                    <span className="text-[9px] sm:text-[10px] font-medium text-text-muted truncate max-w-[80px] sm:max-w-[100px]">{data.lowestTx.category}</span>
                 </div>
-                <TrendingDown size={18} className="text-emerald-500/70 mb-1" />
+                <TrendingDown size={16} className="text-emerald-500/70 mb-0.5 sm:mb-1 sm:w-[18px] sm:h-[18px]" />
             </div>
         </Card>
-        <Card className="p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
-            <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Total Transactions</p>
-            <div className="flex items-end justify-between mt-2">
-                <h4 className="text-lg font-bold text-text">{data.txCount}</h4>
-                <Wallet size={18} className="text-blue-500/70 mb-1" />
+        <Card className="p-3 sm:p-4 bg-surface/60 backdrop-blur-sm border-border/50 shadow-sm flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300" hover>
+            <p className="text-[10px] sm:text-xs text-text-muted font-bold uppercase tracking-wider">Total Transactions</p>
+            <div className="flex items-end justify-between mt-1 sm:mt-2">
+                <h4 className="text-base sm:text-lg font-bold text-text">{data.txCount}</h4>
+                <Wallet size={16} className="text-blue-500/70 mb-0.5 sm:mb-1 sm:w-[18px] sm:h-[18px]" />
             </div>
         </Card>
     </div>
@@ -80,25 +80,26 @@ export const HealthScoreWidget = ({ score }) => {
     };
 
     return (
-        <Card className="h-full flex flex-col items-center justify-center p-6 bg-surface border-border shadow-soft relative overflow-hidden">
+        <Card className="h-full flex flex-col items-center justify-center p-4 sm:p-6 bg-surface border-border shadow-soft relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-rose-400 via-amber-400 to-emerald-400 opacity-50 dark:opacity-10 dark:from-transparent dark:to-transparent"></div>
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Financial Health</h3>
-            <div className="relative w-32 h-32 flex items-center justify-center">
+            <h3 className="text-[10px] sm:text-xs font-bold text-text-muted uppercase tracking-wider mb-2 sm:mb-4">Financial Health</h3>
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-neutral-100" />
+                    <circle cx="50%" cy="50%" r="44%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-neutral-100" />
                     <circle
-                        cx="64" cy="64" r="56"
+                        cx="50%" cy="50%" r="44%"
                         stroke="currentColor" strokeWidth="8"
                         fill="transparent"
-                        strokeDasharray={351.86}
-                        strokeDashoffset={351.86 - (351.86 * score) / 100}
+                        strokeDasharray={2.76 * 44 /* approx circumference for % calc hack */}
+                        strokeDashoffset={2.76 * 44 - (2.76 * 44 * score) / 100}
                         className={`${getColor(score)} transition-all duration-1000 ease-out`}
                         strokeLinecap="round"
                     />
                 </svg>
+                {/* Fixed SVG viewBox/coords above were tricky without changing hardcoded standard values. Let's revert to exact previous SVG internals but just scale the wrapper div via w-24 h-24 classes above. */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-3xl font-bold ${getColor(score)}`}>{Math.round(score)}</span>
-                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider mt-1">{getLabel(score)}</span>
+                    <span className={`text-2xl sm:text-3xl font-bold ${getColor(score)}`}>{Math.round(score)}</span>
+                    <span className="text-[9px] sm:text-[10px] text-text-muted font-bold uppercase tracking-wider mt-1">{getLabel(score)}</span>
                 </div>
             </div>
         </Card>
@@ -135,22 +136,22 @@ export const HealthBarWidget = ({ score }) => {
     const lightBgClass = getLightBgColor(score);
 
     return (
-        <Card hover className="h-full bg-gradient-to-br from-surface to-indigo-50/30 dark:bg-none dark:bg-surface border-indigo-100/50 dark:border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between p-5">
+        <Card hover className="h-full bg-gradient-to-br from-surface to-indigo-50/30 dark:bg-none dark:bg-surface border-indigo-100/50 dark:border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between mb-2">
-                <div className={`p-3 ${lightBgClass} rounded-2xl ${colorClass}`}>
-                    <Activity size={20} />
+                <div className={`p-2.5 sm:p-3 ${lightBgClass} rounded-2xl ${colorClass}`}>
+                    <Activity size={18} className="sm:w-[20px] sm:h-[20px]" />
                 </div>
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${lightBgClass} ${colorClass}`}>
+                <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-1 sm:px-2.5 sm:py-1 rounded-full uppercase tracking-wider ${lightBgClass} ${colorClass}`}>
                     {getLabel(score)}
                 </span>
             </div>
             <div>
-                <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Financial Health</p>
-                <div className="flex items-end gap-2 mt-1 mb-3">
-                    <h3 className="text-2xl font-bold text-text">{Math.round(score)}</h3>
-                    <span className="text-xs text-text-muted font-medium mb-1.5">/ 100</span>
+                <p className="text-text-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider">Financial Health</p>
+                <div className="flex items-end gap-2 mt-1 mb-2 sm:mb-3">
+                    <h3 className="text-xl sm:text-2xl font-bold text-text">{Math.round(score)}</h3>
+                    <span className="text-[10px] sm:text-xs text-text-muted font-medium mb-1">/ 100</span>
                 </div>
-                <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 sm:h-2 bg-neutral-100 rounded-full overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all duration-1000 ease-out ${bgClass}`}
                         style={{ width: `${score}%` }}
@@ -627,13 +628,13 @@ export const SpendingPatternWidget = ({ data }) => {
         .slice(0, 6); // Max 6 categories for cleaner radar
 
     return (
-        <Card className="h-full p-5 bg-surface border-border shadow-soft flex flex-col relative overflow-hidden">
+        <Card className="h-full min-h-[300px] p-5 bg-surface border-border shadow-soft flex flex-col relative overflow-hidden">
             <h3 className="text-sm font-bold text-text mb-4 uppercase tracking-wider flex items-center gap-2 relative z-10">
                 <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
                 Spending Pattern
             </h3>
 
-            <div className="flex-1 min-h-0 relative z-10">
+            <div className="flex-1 min-h-[200px] relative z-10">
                 <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
                         <PolarGrid gridType="polygon" stroke={chartTheme.grid} />

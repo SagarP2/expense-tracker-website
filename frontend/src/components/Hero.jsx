@@ -9,11 +9,11 @@ export default function Hero() {
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
             New • Collaboration tracking
           </span>
-          <h1 id="hero-title" className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-text leading-[1.1]">
+          <h1 id="hero-title" className="mt-6 text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight text-text leading-[1.1]">
             <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">Track expenses</span> <br className="hidden sm:block" />
             and share balances.
           </h1>
-          <p className="mt-6 text-lg text-text-secondary max-w-lg leading-relaxed">
+          <p className="mt-6 text-lg sm:text-xl text-text-secondary max-w-lg leading-relaxed">
             Clean workflows, fast filters, and helpful insights designed for everyday use. Manage your personal and shared finances in one place.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">

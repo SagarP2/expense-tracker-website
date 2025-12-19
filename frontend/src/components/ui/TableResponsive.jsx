@@ -12,7 +12,7 @@ import { ChevronRight } from 'lucide-react';
  * @param {String} emptyMessage - Message to show when data is empty
  * @param {Function} renderMobileItem - Optional function to render a custom mobile item. Receives (row) and should return ReactNode.
  */
-export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No data available",renderMobileItem }) {
+export function TableResponsive({ columns, data, onRowClick, emptyMessage = "No data available", renderMobileItem }) {
 
     if (!data || data.length === 0) {
         return (
@@ -30,7 +30,7 @@ export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No dat
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
-                                {columns.map((col,idx) => (
+                                {columns.map((col, idx) => (
                                     <th
                                         key={col.key || idx}
                                         className={`px-6 py-4 font-semibold text-text-secondary ${col.className || ''}`}
@@ -41,7 +41,7 @@ export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No dat
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {data.map((row,rowIdx) => (
+                            {data.map((row, rowIdx) => (
                                 <tr
                                     key={row._id || row.id || rowIdx}
                                     onClick={() => onRowClick && onRowClick(row)}
@@ -50,7 +50,7 @@ export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No dat
                     ${onRowClick ? 'cursor-pointer' : ''}
                   `}
                                 >
-                                    {columns.map((col,colIdx) => (
+                                    {columns.map((col, colIdx) => (
                                         <td
                                             key={`${rowIdx}-${colIdx}`}
                                             className={`px-6 py-4 text-text ${col.className || ''}`}
@@ -67,7 +67,7 @@ export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No dat
 
             {/* Mobile View (Cards) */}
             <div className="md:hidden space-y-4">
-                {data.map((row,rowIdx) => (
+                {data.map((row, rowIdx) => (
                     renderMobileItem ? (
                         <div key={row._id || row.id || rowIdx}>
                             {renderMobileItem(row)}
@@ -82,22 +82,22 @@ export function TableResponsive({ columns,data,onRowClick,emptyMessage = "No dat
                             onClick={() => onRowClick && onRowClick(row)}
                         >
                             <div className="space-y-3">
-                                {columns.map((col,colIdx) => {
+                                {columns.map((col, colIdx) => {
                                     const content = col.render ? col.render(row) : row[col.key];
 
                                     if (colIdx === 0) {
                                         return (
-                                            <div key={colIdx} className="font-semibold text-lg text-text flex justify-between items-start">
+                                            <div key={colIdx} className="font-semibold text-base text-text flex justify-between items-start">
                                                 <span>{content}</span>
-                                                {onRowClick && <ChevronRight size={18} className="text-text-muted mt-1" />}
+                                                {onRowClick && <ChevronRight size={16} className="text-text-muted mt-1" />}
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div key={colIdx} className="flex justify-between items-center text-sm">
+                                        <div key={colIdx} className="flex justify-between items-center text-xs">
                                             <span className="text-text-secondary font-medium">{col.header}</span>
-                                            <span className="text-text text-right">{content}</span>
+                                            <span className="text-text text-sm text-right">{content}</span>
                                         </div>
                                     );
                                 })}

@@ -1,19 +1,19 @@
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
-import { User,Mail,Phone,Edit2 } from 'lucide-react';
+import { User, Mail, Phone, Edit2 } from 'lucide-react';
 
-export function UserProfile({ isOpen,onClose }) {
-    const { user,updateProfile } = useAuth();
-    const [isEditing,setIsEditing] = useState(false);
-    const [formData,setFormData] = useState({
+export function UserProfile({ isOpen, onClose }) {
+    const { user, updateProfile } = useAuth();
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({
         name: '',
         mobileNumber: '',
     });
-    const [error,setError] = useState('');
-    const [success,setSuccess] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -22,7 +22,7 @@ export function UserProfile({ isOpen,onClose }) {
                 mobileNumber: user.mobileNumber || '',
             });
         }
-    },[user]);
+    }, [user]);
 
     if (!isOpen) return null;
 
@@ -33,11 +33,11 @@ export function UserProfile({ isOpen,onClose }) {
         try {
             await updateProfile(formData);
             setSuccess('Profile updated successfully');
-            setTimeout(() => setSuccess(''),2000);
+            setTimeout(() => setSuccess(''), 2000);
             setIsEditing(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update profile');
-            setTimeout(() => setError(''),2000);
+            setTimeout(() => setError(''), 2000);
         }
 
     }
@@ -51,10 +51,10 @@ export function UserProfile({ isOpen,onClose }) {
             description="Manage your personal information"
         >
             <div className="text-center mb-8">
-                <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold text-white shadow-lg shadow-primary/30">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl sm:text-3xl font-bold text-white shadow-lg shadow-primary/30">
                     {user?.name?.charAt(0).toUpperCase()}
                 </div>
-                <h2 className="text-2xl font-bold text-text">
+                <h2 className="text-xl sm:text-2xl font-bold text-text">
                     @{user?.username || 'username'}
                 </h2>
             </div>
@@ -81,7 +81,7 @@ export function UserProfile({ isOpen,onClose }) {
                             type="text"
                             value={formData.name}
                             onChange={(e) =>
-                                setFormData({ ...formData,name: e.target.value })
+                                setFormData({ ...formData, name: e.target.value })
                             }
                             required
                             className="py-3"
@@ -112,10 +112,10 @@ export function UserProfile({ isOpen,onClose }) {
                             type="tel"
                             value={formData.mobileNumber}
                             onChange={(e) =>
-                                setFormData({ ...formData,mobileNumber: e.target.value })
+                                setFormData({ ...formData, mobileNumber: e.target.value })
                             }
                             placeholder="Add mobile number"
-                            className="py-3"
+                            className="py-2.5 sm:py-3 text-sm sm:text-base"
                         />
                     ) : (
                         <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group">

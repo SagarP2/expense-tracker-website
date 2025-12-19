@@ -6,6 +6,14 @@ export default {
     ],
     darkMode: 'class',
     theme: {
+        screens: {
+            'xs': '480px',
+            'sm': '640px',
+            'md': '768px',
+            'lg': '1024px',
+            'xl': '1280px',
+            '2xl': '1440px',
+        },
         extend: {
             colors: {
                 // Primary Brand Colors (Blue)
@@ -85,15 +93,15 @@ export default {
                 border: "rgb(var(--border) / <alpha-value>)",
             },
             fontFamily: {
-                sans: ['Inter','system-ui','sans-serif'],
-                display: ['Outfit','Inter','system-ui','sans-serif'],
+                sans: ['Inter', 'system-ui', 'sans-serif'],
+                display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
             },
             fontSize: {
                 // Responsive clamp typography
-                'display': ['clamp(2.5rem, 5vw, 4rem)',{ lineHeight: '1.1',letterSpacing: '-0.02em' }],
-                'h1': ['clamp(2rem, 4vw, 3rem)',{ lineHeight: '1.2' }],
-                'h2': ['clamp(1.5rem, 3vw, 2.25rem)',{ lineHeight: '1.2' }],
-                'h3': ['clamp(1.25rem, 2.5vw, 1.875rem)',{ lineHeight: '1.3' }],
+                'display': ['clamp(2.5rem, 5vw, 4rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+                'h1': ['clamp(2rem, 4vw, 3rem)', { lineHeight: '1.2' }],
+                'h2': ['clamp(1.5rem, 3vw, 2.25rem)', { lineHeight: '1.2' }],
+                'h3': ['clamp(1.25rem, 2.5vw, 1.875rem)', { lineHeight: '1.3' }],
             },
             borderRadius: {
                 'xl': '1rem',
@@ -120,16 +128,16 @@ export default {
                     '100%': { opacity: '1' },
                 },
                 slideUp: {
-                    '0%': { transform: 'translateY(20px)',opacity: '0' },
-                    '100%': { transform: 'translateY(0)',opacity: '1' },
+                    '0%': { transform: 'translateY(20px)', opacity: '0' },
+                    '100%': { transform: 'translateY(0)', opacity: '1' },
                 },
                 slideInRight: {
                     '0%': { transform: 'translateX(100%)' },
                     '100%': { transform: 'translateX(0)' },
                 },
                 scaleIn: {
-                    '0%': { transform: 'scale(0.95)',opacity: '0' },
-                    '100%': { transform: 'scale(1)',opacity: '1' },
+                    '0%': { transform: 'scale(0.95)', opacity: '0' },
+                    '100%': { transform: 'scale(1)', opacity: '1' },
                 }
             },
         },

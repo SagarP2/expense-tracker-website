@@ -1,28 +1,28 @@
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { getMyCollaborations,sendCollabInvite,acceptCollabInvite,rejectCollabInvite,getBalanceSummary,requestDeletion } from '../../services/collabApi';
+import { getMyCollaborations, sendCollabInvite, acceptCollabInvite, rejectCollabInvite, getBalanceSummary, requestDeletion } from '../../services/collabApi';
 import { Modal } from '../../components/ui/Modal';
-import { Users,Plus,Clock,CheckCircle,XCircle,ArrowRight,Mail,Trash2 } from 'lucide-react';
+import { Users, Plus, Clock, CheckCircle, XCircle, ArrowRight, Mail, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'; // Assuming you have this or standard confirm
 
 export default function CollaborationList() {
-  const [collaborations,setCollaborations] = useState([]);
-  const [balances,setBalances] = useState({}); // Store balance for each collaboration
-  const [loading,setLoading] = useState(true);
-  const [showInviteModal,setShowInviteModal] = useState(false);
-  const [inviteEmail,setInviteEmail] = useState('');
-  const [inviteLoading,setInviteLoading] = useState(false);
-  const [error,setError] = useState('');
+  const [collaborations, setCollaborations] = useState([]);
+  const [balances, setBalances] = useState({}); // Store balance for each collaboration
+  const [loading, setLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Custom dialog states
-  const [deleteId,setDeleteId] = useState(null);
-  const [alertInfo,setAlertInfo] = useState({ isOpen: false,title: '',message: '' });
+  const [deleteId, setDeleteId] = useState(null);
+  const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '' });
 
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,21 +38,21 @@ export default function CollaborationList() {
         .map(async (collab) => {
           try {
             const balance = await getBalanceSummary(collab._id);
-            return { id: collab._id,balance };
+            return { id: collab._id, balance };
           } catch (error) {
-            console.error(`Failed to fetch balance for ${collab._id}`,error);
-            return { id: collab._id,balance: null };
+            console.error(`Failed to fetch balance for ${collab._id}`, error);
+            return { id: collab._id, balance: null };
           }
         });
 
       const balanceResults = await Promise.all(balancePromises);
       const balanceMap = {};
-      balanceResults.forEach(({ id,balance }) => {
+      balanceResults.forEach(({ id, balance }) => {
         balanceMap[id] = balance;
       });
       setBalances(balanceMap);
     } catch (error) {
-      console.error('Failed to fetch collaborations',error);
+      console.error('Failed to fetch collaborations', error);
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function CollaborationList() {
 
   useEffect(() => {
     fetchCollaborations();
-  },[]);
+  }, []);
 
   const handleSendInvite = async (e) => {
     e.preventDefault();
@@ -83,7 +83,7 @@ export default function CollaborationList() {
       await acceptCollabInvite(id);
       fetchCollaborations();
     } catch (error) {
-      console.error('Failed to accept invite',error);
+      console.error('Failed to accept invite', error);
     }
   };
 
@@ -92,11 +92,11 @@ export default function CollaborationList() {
       await rejectCollabInvite(id);
       fetchCollaborations();
     } catch (error) {
-      console.error('Failed to reject invite',error);
+      console.error('Failed to reject invite', error);
     }
   };
 
-  const handleDelete = (e,id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
     setDeleteId(id);
   };
@@ -112,7 +112,7 @@ export default function CollaborationList() {
         message: 'Deletion requested. The other user needs to accept it.'
       });
     } catch (error) {
-      console.error('Failed to delete collaboration',error);
+      console.error('Failed to delete collaboration', error);
       setAlertInfo({
         isOpen: true,
         title: 'Error',
@@ -137,8 +137,8 @@ export default function CollaborationList() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-text">Collaborations</h2>
-          <p className="text-text-muted mt-1">Manage shared expenses with others</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text">Collaborations</h2>
+          <p className="text-sm sm:text-base text-text-muted mt-1">Manage shared expenses with others</p>
         </div>
         <Button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 shadow-glow">
           <Plus size={20} />
@@ -281,14 +281,14 @@ export default function CollaborationList() {
                         <Users size={24} />
                       </div>
                       <div>
-                        <p className="font-bold text-text group-hover:text-primary transition-colors">
+                        <p className="font-bold text-base sm:text-lg text-text group-hover:text-primary transition-colors">
                           {otherUser?.name || 'Shared Group'}
                         </p>
-                        <p className="text-sm text-text-muted">{otherUser?.email}</p>
+                        <p className="text-xs sm:text-sm text-text-muted truncate max-w-[140px] sm:max-w-none">{otherUser?.email}</p>
                       </div>
                     </div>
                     <button
-                      onClick={(e) => handleDelete(e,collab._id)}
+                      onClick={(e) => handleDelete(e, collab._id)}
                       className="p-2 text-text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                       title="Delete Collaboration"
                     >
@@ -360,13 +360,13 @@ export default function CollaborationList() {
       {/* Alert Modal */}
       <Modal
         isOpen={alertInfo.isOpen}
-        onClose={() => setAlertInfo({ ...alertInfo,isOpen: false })}
+        onClose={() => setAlertInfo({ ...alertInfo, isOpen: false })}
         title={alertInfo.title}
         className="max-w-md"
       >
         <p className="text-text mb-6">{alertInfo.message}</p>
         <div className="flex justify-end">
-          <Button onClick={() => setAlertInfo({ ...alertInfo,isOpen: false })}>
+          <Button onClick={() => setAlertInfo({ ...alertInfo, isOpen: false })}>
             OK
           </Button>
         </div>

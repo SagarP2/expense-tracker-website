@@ -146,7 +146,7 @@
   }
 
   body {
-    @apply bg-background text-text font-sans antialiased selection:bg-primary/20 selection:text-primary overflow-x-hidden;
+    @apply bg-background text-text font-sans antialiased selection:bg-primary/20 selection:text-primary overflow-x-hidden min-h-screen;
     /* Removed radial gradients for a cleaner look */
   }
 }

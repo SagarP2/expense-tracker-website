@@ -1,19 +1,19 @@
-import { NavLink,useNavigate } from 'react-router-dom';
-import { LayoutDashboard,Receipt,ChevronRight,Wallet,Users,LogOut } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Receipt, ChevronRight, Wallet, Users, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { useState } from 'react';
 
-export function Sidebar({ isOpen,setIsOpen }) {
+export function Sidebar({ isOpen, setIsOpen }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [isLogoutConfirmOpen,setIsLogoutConfirmOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const navItems = [
-    { icon: LayoutDashboard,label: 'Dashboard',path: '/dashboard' },
-    { icon: Receipt,label: 'Transactions',path: '/transactions' },
-    { icon: Users,label: 'Collaborations',path: '/collaborations' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Receipt, label: 'Transactions', path: '/transactions' },
+    { icon: Users, label: 'Collaborations', path: '/collaborations' },
   ];
 
   const handleLogout = () => {
@@ -39,13 +39,19 @@ export function Sidebar({ isOpen,setIsOpen }) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-border/50">
+        <div className="p-6 border-b border-border/50 flex items-center justify-between">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center text-white text-lg shadow-glow shadow-primary/30">
               <Wallet size={20} />
             </div>
             Tracker
           </h1>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden p-2 text-text-secondary hover:text-danger transition-colors rounded-lg hover:bg-danger/10"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -65,7 +71,7 @@ export function Sidebar({ isOpen,setIsOpen }) {
             >
               <item.icon size={20} className={clsx("transition-transform group-hover:scale-110")} />
               <span className="flex-1">{item.label}</span>
-              <ChevronRight size={16} className={clsx("opacity-0 -translate-x-2 transition-all",({ isActive }) => isActive ? "opacity-100 translate-x-0" : "group-hover:opacity-50 group-hover:translate-x-0")} />
+              <ChevronRight size={16} className={clsx("opacity-0 -translate-x-2 transition-all", ({ isActive }) => isActive ? "opacity-100 translate-x-0" : "group-hover:opacity-50 group-hover:translate-x-0")} />
             </NavLink>
           ))}
         </nav>

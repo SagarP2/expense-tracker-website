@@ -41,9 +41,9 @@ export default function Landing() {
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
             <div className="relative z-10 max-w-2xl">
-              <p className="text-blue-100 font-semibold mb-2 uppercase tracking-wider text-sm">Start now</p>
-              <h3 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Ready to take control of your finances?</h3>
-              <p className="mt-4 text-blue-100 text-lg">Join thousands of users tracking their expenses effortlessly.</p>
+              <p className="text-blue-100 font-semibold mb-2 uppercase tracking-wider text-xs sm:text-sm">Start now</p>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">Ready to take control of your finances?</h3>
+              <p className="mt-4 text-blue-100 text-base sm:text-lg">Join thousands of users tracking their expenses effortlessly.</p>
             </div>
             <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
               <Link to="/register" className="w-full sm:w-auto">

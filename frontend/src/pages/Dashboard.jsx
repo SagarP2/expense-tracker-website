@@ -245,13 +245,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 animate-fade-in pb-8">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface/40 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-sm">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Dashboard</h2>
           <p className="text-text-muted mt-1 font-medium text-sm sm:text-base">Your financial overview</p>
         </div>
-        {/* Month filter */}
-        <div className="flex items-center gap-2 bg-surface p-1.5 rounded-xl border border-border shadow-sm w-full sm:w-auto">
+
+        {/* Month/Year Toggle + Date Picker in one row */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* View Mode Toggle */}
           <div className="flex bg-neutral-100 rounded-lg p-1">
             <button
@@ -268,28 +270,25 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="h-6 w-px bg-border mx-1"></div>
+          {/* Date Picker */}
+          <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border shadow-sm">
+            <Calendar size={16} className="text-text-muted" />
 
-          {/* Month Filter */}
-          {filter.viewMode === 'month' && (
-            <div className="relative flex items-center">
-              <Calendar size={14} className="absolute left-2 text-text-muted pointer-events-none" />
+            {/* Month Filter */}
+            {filter.viewMode === 'month' && (
               <input
                 type="month"
-                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
+                className="bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer min-w-[140px]"
                 value={filter.month}
                 onChange={(e) => setFilter({ ...filter, month: e.target.value })}
                 onKeyDown={(e) => e.preventDefault()}
               />
-            </div>
-          )}
+            )}
 
-          {/* Year Filter */}
-          {filter.viewMode === 'year' && (
-            <div className="relative flex items-center">
-              <Calendar size={14} className="absolute left-2 text-text-muted pointer-events-none" />
+            {/* Year Filter */}
+            {filter.viewMode === 'year' && (
               <select
-                className="pl-7 pr-6 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer appearance-none"
+                className="bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer appearance-none pr-2"
                 value={filter.year}
                 onChange={(e) => setFilter({ ...filter, year: e.target.value })}
               >
@@ -297,8 +296,8 @@ export default function Dashboard() {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -306,8 +305,8 @@ export default function Dashboard() {
       <MiniStatsStrip data={miniStats} />
 
       {/* Main Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up">
-        <Card className="bg-gradient-to-br from-primary to-blue-600 text-white border-none shadow-glow relative overflow-hidden col-span-1 md:col-span-2 lg:col-span-1 min-h-[160px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-slide-up">
+        <Card className="bg-gradient-to-br from-primary to-blue-600 text-white border-none shadow-glow relative overflow-hidden col-span-1 md:col-span-2 xl:col-span-1 min-h-[160px]">
           <div className="absolute -bottom-4 -right-4 p-7 opacity-20 rotate-0">
             <Wallet size={100} />
           </div>
@@ -324,7 +323,7 @@ export default function Dashboard() {
                   {hideBalance ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <h3 className="text-3xl font-bold tracking-tight truncate">
+              <h3 className="text-3xl font-bold tracking-tight">
                 {hideBalance ? '₹*****' : formatCurrency(balance)}
               </h3>
             </div>
@@ -349,7 +348,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Total Income</p>
-            <h3 className="text-2xl font-bold text-text mt-1 truncate">
+            <h3 className="text-2xl font-bold text-text mt-1">
               {hideIncome ? '₹*****' : formatCurrency(totalIncome)}
             </h3>
           </div>
@@ -363,7 +362,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Total Expense</p>
-            <h3 className="text-2xl font-bold text-text mt-1 truncate">{formatCurrency(totalExpense)}</h3>
+            <h3 className="text-2xl font-bold text-text mt-1">{formatCurrency(totalExpense)}</h3>
           </div>
         </Card>
 
@@ -372,11 +371,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Grid: Health, Chart, Goal/Category */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+      {/* Main Grid: Health, Chart, Goal/Category - Tablet-First */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
-        {/* Center: Main Chart */}
-        <div className="lg:col-span-2 h-[470px]">
+        {/* Center: Main Chart - Spans 2 cols on tablet, 2 on desktop */}
+        <div className="md:col-span-2 lg:col-span-2 h-[470px]">
           <Card className="h-full flex flex-col bg-gradient-to-b from-surface to-neutral-50/30 dark:bg-none dark:bg-surface border-border shadow-lg">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-lg font-bold flex items-center gap-3 text-text">
