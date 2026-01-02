@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Avatar } from './ui/Avatar';
-import { Menu,Bell,LogOut } from 'lucide-react';
+import { Menu, Bell, LogOut } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useState } from 'react';
 
@@ -11,11 +11,11 @@ import { ThemeToggle } from './ui/ThemeToggle';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export function Navbar({ onMenuClick }) {
-  const { user,logout } = useAuth();
+  const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
-  const [isProfileOpen,setIsProfileOpen] = useState(false);
-  const [isNotificationOpen,setIsNotificationOpen] = useState(false);
-  const [isLogoutConfirmOpen,setIsLogoutConfirmOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3 lg:px-8 transition-all duration-300 shadow-sm support-[backdrop-filter]:bg-surface/60">
@@ -58,7 +58,7 @@ export function Navbar({ onMenuClick }) {
             <div onClick={() => setIsProfileOpen(true)} className="cursor-pointer hover:opacity-80 transition-opacity">
               <Avatar name={user?.name} size="md" />
             </div>
-            <ThemeToggle />
+            {/* ThemeToggle removed */}
             <Button
               variant="ghost"
               size="sm"

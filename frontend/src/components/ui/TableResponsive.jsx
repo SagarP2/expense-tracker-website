@@ -16,7 +16,7 @@ export function TableResponsive({ columns, data, onRowClick, emptyMessage = "No 
 
     if (!data || data.length === 0) {
         return (
-            <div className="text-center py-12 text-text-muted bg-surface/50 rounded-2xl border border-dashed border-border">
+            <div className="text-center py-8 sm:py-12 text-text-muted bg-surface/50 rounded-2xl border border-dashed border-border">
                 {emptyMessage}
             </div>
         );
@@ -25,7 +25,7 @@ export function TableResponsive({ columns, data, onRowClick, emptyMessage = "No 
     return (
         <>
             {/* Desktop View (Table) */}
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <div className="hidden xl:block overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead>
@@ -66,7 +66,7 @@ export function TableResponsive({ columns, data, onRowClick, emptyMessage = "No 
             </div>
 
             {/* Mobile View (Cards) */}
-            <div className="md:hidden space-y-4">
+            <div className="xl:hidden space-y-4">
                 {data.map((row, rowIdx) => (
                     renderMobileItem ? (
                         <div key={row._id || row.id || rowIdx}>
@@ -76,7 +76,7 @@ export function TableResponsive({ columns, data, onRowClick, emptyMessage = "No 
                         <Card
                             key={row._id || row.id || rowIdx}
                             className={`
-                p-4 border-border shadow-sm active:scale-[0.99] transition-transform
+                p-3 sm:p-4 border-border shadow-sm active:scale-[0.99] transition-transform
                 ${onRowClick ? 'cursor-pointer active:bg-surface-highlight' : ''}
               `}
                             onClick={() => onRowClick && onRowClick(row)}

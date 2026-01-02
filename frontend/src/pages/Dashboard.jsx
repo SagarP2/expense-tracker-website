@@ -15,7 +15,8 @@ import {
 } from '../components/DashboardWidgets';
 
 const CustomXAxisTick = ({ x, y, payload }) => {
-  const MAX_LENGTH = 10;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const MAX_LENGTH = isMobile ? 8 : 10;
   let text = payload.value;
   let lines = [];
 
@@ -32,14 +33,28 @@ const CustomXAxisTick = ({ x, y, payload }) => {
     }
     lines.push(currentLine);
   } else {
-    lines = [text];
+    // Force truncate if too long and no spaces or just one long word
+    if (isMobile && text.length > MAX_LENGTH) {
+      lines = [text.substring(0, MAX_LENGTH) + '..'];
+    } else {
+      lines = [text];
+    }
   }
 
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={10} dy={10} textAnchor="middle" fill="#94a3b8" fontSize={10} fontWeight={500}>
+      <text
+        x={0}
+        y={0}
+        dy={isMobile ? 10 : 10}
+        textAnchor={isMobile ? "end" : "middle"}
+        fill="#94a3b8"
+        fontSize={isMobile ? 8 : 10}
+        fontWeight={500}
+        transform={isMobile ? "rotate(-45)" : "rotate(0)"}
+      >
         {lines.map((line, index) => (
-          <tspan x={0} dy={index === 0 ? 0 : 12} key={index}>
+          <tspan x={0} dy={index === 0 ? 0 : isMobile ? 10 : 12} key={index}>
             {line}
           </tspan>
         ))}
@@ -246,39 +261,38 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 animate-fade-in pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface/40 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface/40 backdrop-blur-md p-3 sm:p-4 rounded-3xl border border-white/20 shadow-sm">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-text tracking-tight">Dashboard</h2>
-          <p className="text-text-muted mt-1 font-medium text-sm sm:text-base">Your financial overview</p>
+          <h2 className="text-xl sm:text-3xl font-bold text-text tracking-tight">Dashboard</h2>
+          <p className="text-text-muted mt-0.5 sm:mt-1 font-medium text-xs sm:text-base">Your financial overview</p>
         </div>
 
         {/* Month/Year Toggle + Date Picker in one row */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-fit sm:w-auto">
           {/* View Mode Toggle */}
           <div className="flex bg-neutral-100 rounded-lg p-1">
             <button
               onClick={() => setFilter(prev => ({ ...prev, viewMode: 'month' }))}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+              className={`px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all ${filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
             >
               Month
             </button>
             <button
               onClick={() => setFilter(prev => ({ ...prev, viewMode: 'year' }))}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
+              className={`px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all ${filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'}`}
             >
               Year
             </button>
           </div>
 
           {/* Date Picker */}
-          <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-xl border border-border shadow-sm">
-            <Calendar size={16} className="text-text-muted" />
+          <div className="flex flex-1 sm:flex-none items-center gap-2 bg-surface px-2 sm:px-3 py-1.5 rounded-xl border border-border shadow-sm min-w-0">
 
             {/* Month Filter */}
             {filter.viewMode === 'month' && (
               <input
                 type="month"
-                className="bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer min-w-[140px]"
+                className="bg-transparent text-xs sm:text-sm font-medium text-text focus:outline-none cursor-pointer w-fit sm:min-w-[140px]"
                 value={filter.month}
                 onChange={(e) => setFilter({ ...filter, month: e.target.value })}
                 onKeyDown={(e) => e.preventDefault()}
@@ -288,7 +302,7 @@ export default function Dashboard() {
             {/* Year Filter */}
             {filter.viewMode === 'year' && (
               <select
-                className="bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer appearance-none pr-2"
+                className="bg-transparent text-xs sm:text-sm font-medium text-text focus:outline-none cursor-pointer appearance-none pr-2 w-fit"
                 value={filter.year}
                 onChange={(e) => setFilter({ ...filter, year: e.target.value })}
               >
@@ -372,21 +386,21 @@ export default function Dashboard() {
       </div>
 
       {/* Main Grid: Health, Chart, Goal/Category - Tablet-First */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
         {/* Center: Main Chart - Spans 2 cols on tablet, 2 on desktop */}
-        <div className="md:col-span-2 lg:col-span-2 h-[470px]">
-          <Card className="h-full flex flex-col bg-gradient-to-b from-surface to-neutral-50/30 dark:bg-none dark:bg-surface border-border shadow-lg">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold flex items-center gap-3 text-text">
-                <div className="w-1 h-6 bg-gradient-to-b from-primary to-blue-600 rounded-full shadow-sm"></div>
+        <div className="xl:col-span-2 h-[350px] sm:h-[470px]">
+          <Card className="h-full flex flex-col bg-gradient-to-b from-surface to-neutral-50/30 dark:bg-none dark:bg-surface border-border shadow-lg p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-8">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2 sm:gap-3 text-text">
+                <div className="w-1 h-5 sm:h-6 bg-gradient-to-b from-primary to-blue-600 rounded-full shadow-sm"></div>
                 Income & Expense Breakdown
               </h3>
-              <div className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider rounded-full border border-primary/10">
+              <div className="px-2 sm:px-3 py-1 bg-primary/5 text-primary text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-primary/10">
                 Overview
               </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 -ml-4 sm:ml-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={[
@@ -399,7 +413,7 @@ export default function Dashboard() {
                       color: cat.color
                     }))
                   ]}
-                  margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                  margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -427,7 +441,7 @@ export default function Dashboard() {
                     tickLine={false}
                     tick={<CustomXAxisTick />}
                     interval={0}
-                    height={60}
+                    height={70}
                   />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }} />
                   <Tooltip
@@ -467,22 +481,32 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-2 px-4 pb-4 text-[10px] text-text-muted text-center italic">
+            <div className="mt-2 px-1 sm:px-4 pb-2 sm:pb-4 text-[10px] text-text-muted text-center italic">
               Note: The expense bar depends on all category-wise expenses.
             </div>
           </Card>
         </div>
 
         {/* Right: Goal & Category */}
-        <div className="lg:col-span-2 flex flex-col gap-4 h-auto lg:h-[464px]">
-          <div className="flex-1 grid grid-cols-2 gap-4 min-h-[200px]">
-            <GoalTrackerWidget current={currentSavings} target={filter.viewMode === 'year' ? 0 : savingsGoal} onUpdateGoal={handleUpdateSavingsGoal} />
+        <div className="xl:col-span-2 flex flex-col sm:grid sm:grid-rows-[222px_1fr] grid-rows-[422px_1fr] gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-[422px] sm:h-[222px] overflow-hidden">
+            <GoalTrackerWidget
+              current={currentSavings}
+              target={filter.viewMode === 'year' ? 0 : savingsGoal}
+              onUpdateGoal={handleUpdateSavingsGoal}
+            />
             <CategoryHighlightWidget category={categoryHighlight} />
           </div>
-          <div className="flex-1 min-h-[200px]">
-            <WeeklyActivityWidget transactions={filteredTransactions} selectedMonth={filter.month} selectedYear={filter.year} />
+
+          <div>
+            <WeeklyActivityWidget
+              transactions={filteredTransactions}
+              selectedMonth={filter.month}
+              selectedYear={filter.year}
+            />
           </div>
         </div>
+
       </div>
     </div>
   );

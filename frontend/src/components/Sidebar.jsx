@@ -39,7 +39,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-border/50 flex items-center justify-between">
+        <div className="p-3 pl-6 border-b border-border/50 flex items-center justify-between">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center text-white text-lg shadow-glow shadow-primary/30">
               <Wallet size={20} />
@@ -50,7 +50,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
             onClick={() => setIsOpen(false)}
             className="lg:hidden p-2 text-text-secondary hover:text-danger transition-colors rounded-lg hover:bg-danger/10"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path></svg>
           </button>
         </div>
 

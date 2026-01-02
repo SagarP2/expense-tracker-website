@@ -36,7 +36,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
                 aria-modal="true"
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border">
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
                     <div className="flex-1 pr-4">
                         <h2 className="text-xl font-semibold text-text">{title}</h2>
                         {description && (
@@ -53,7 +53,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
                 </div>
 
                 {/* Body */}
-                <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
                     {children}
                 </div>
             </div>

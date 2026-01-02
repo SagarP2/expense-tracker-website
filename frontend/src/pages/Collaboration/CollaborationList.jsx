@@ -272,37 +272,37 @@ export default function CollaborationList() {
                 <Card
                   key={collab._id}
                   hover
-                  className="p-6 cursor-pointer group"
+                  className="p-4 sm:p-6 cursor-pointer group"
                   onClick={() => navigate(`/collaborations/${collab._id}`)}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-sm">
-                        <Users size={24} />
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
+                        <Users size={20} className="sm:w-6 sm:h-6" />
                       </div>
-                      <div>
-                        <p className="font-bold text-base sm:text-lg text-text group-hover:text-primary transition-colors">
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm sm:text-lg text-text group-hover:text-primary transition-colors truncate">
                           {otherUser?.name || 'Shared Group'}
                         </p>
-                        <p className="text-xs sm:text-sm text-text-muted truncate max-w-[140px] sm:max-w-none">{otherUser?.email}</p>
+                        <p className="text-[10px] sm:text-sm text-text-muted truncate max-w-[120px] sm:max-w-none">{otherUser?.email}</p>
                       </div>
                     </div>
                     <button
                       onClick={(e) => handleDelete(e, collab._id)}
-                      className="p-2 text-text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1.5 sm:p-2 text-text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                       title="Delete Collaboration"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                   </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-2">
-                      <Badge variant="success">Active</Badge>
+                      <Badge variant="success" className="text-[10px] sm:text-xs">Active</Badge>
                       {isSettled && (
-                        <Badge variant="default" className="bg-green-100 text-green-700">Settled</Badge>
+                        <Badge variant="default" className="bg-green-100 text-green-700 text-[10px] sm:text-xs">Settled</Badge>
                       )}
                     </div>
-                    <ArrowRight size={18} className="text-text-muted group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    <ArrowRight size={16} className="text-text-muted group-hover:text-primary group-hover:translate-x-1 transition-all sm:w-[18px] sm:h-[18px]" />
                   </div>
                 </Card>
               );

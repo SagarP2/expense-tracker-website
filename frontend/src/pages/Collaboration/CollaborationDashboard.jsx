@@ -753,45 +753,45 @@ export default function CollaborationDashboard() {
   const renderMobileItem = (t) => {
     const displayCategory = t.category === '__other__' ? (t.customCategory ?? t.category) : t.category;
     return (
-      <Card className="p-4 mb-3 hover:bg-neutral-50/50 transition-colors border-neutral-100 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+      <Card className="p-2.5 mb-2 hover:bg-neutral-50/50 transition-colors border-neutral-100 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className={clsx(
-              "w-10 h-10 rounded-xl flex items-center justify-center",
+              "w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center",
               t.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
             )}>
-              {t.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+              {t.type === 'income' ? <TrendingUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <TrendingDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
             </div>
             <div>
-              <p className="font-semibold text-text text-sm">{t.description || displayCategory}</p>
-              <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
-                <Calendar size={10} />
+              <p className="font-semibold text-text text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{t.description || displayCategory}</p>
+              <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 flex items-center gap-1">
+                <Calendar size={10} className="sm:w-3 sm:h-3" />
                 {new Date(t.date).toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}, {new Date(t.date).toLocaleDateString('en-GB').replace(/\//g, '-')}
               </p>
             </div>
           </div>
           <div className="text-right">
             <span className={clsx(
-              "font-bold text-sm block",
+              "font-bold text-xs sm:text-sm block",
               t.type === 'income' ? 'text-success' : 'text-danger'
             )}>
               {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
             </span>
-            <span className="text-xs text-text-muted block mt-0.5">by {t.userId?.name}</span>
+            <span className="text-[10px] sm:text-xs text-text-muted block mt-0.5">by {t.userId?.name}</span>
           </div>
         </div>
-        <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-          <Badge variant="outline" className="text-xs font-normal bg-neutral-50 text-text-muted border-neutral-200">
+        <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
+          <Badge variant="outline" className="text-[10px] sm:text-xs font-normal bg-neutral-50 text-text-muted border-neutral-200">
             {displayCategory}
           </Badge>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             {t.category !== 'Settlement' && t.category !== 'Settlement Received' && (
               <>
-                <Button variant="ghost" size="sm" onClick={() => handleEdit(t)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50">
-                  <Edit size={16} />
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(t)} className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-blue-600 hover:bg-blue-50">
+                  <Edit size={14} className="sm:w-4 sm:h-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteDialog({ isOpen: true, id: t._id })} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50">
-                  <Trash2 size={16} />
+                <Button variant="ghost" size="sm" onClick={() => setDeleteDialog({ isOpen: true, id: t._id })} className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-red-600 hover:bg-red-50">
+                  <Trash2 size={14} className="sm:w-4 sm:h-4" />
                 </Button>
               </>
             )}
@@ -1013,37 +1013,37 @@ export default function CollaborationDashboard() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-surface/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 sm:gap-6 bg-surface/40 backdrop-blur-md p-3 sm:p-5 rounded-3xl border border-white/20 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate('/collaborations')}
-            className="rounded-full hover:bg-surface-highlight"
+            className="rounded-full hover:bg-surface-highlight shrink-0 w-8 h-8 sm:w-10 sm:h-10"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={18} className="sm:w-6 sm:h-6" />
           </Button>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-text flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl text-primary">
-                <Users size={24} />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-3xl font-bold text-text flex items-center gap-1.5 sm:gap-3 truncate">
+              <div className="p-1 sm:p-2 bg-primary/10 rounded-xl text-primary shrink-0">
+                <Users size={16} className="sm:w-6 sm:h-6" />
               </div>
-              Shared with {otherUser?.name}
+              <span className="truncate">Shared with {otherUser?.name}</span>
             </h2>
-            <div className="flex items-center gap-3 mt-2 text-text-muted text-sm sm:text-base">
-              <p className="bg-surface/50">{otherUser?.email}</p>
+            <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-2 text-text-muted text-[10px] sm:text-base">
+              <p className="bg-surface/50 truncate max-w-[150px] sm:max-w-none">{otherUser?.email}</p>
             </div>
           </div>
         </div>
 
 
 
-        <div className="flex items-center gap-2 bg-surface p-1.5 rounded-xl border border-border shadow-sm w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-1 w-fit sm:w-auto">
           <div className="flex bg-neutral-100 rounded-lg p-1">
             <button
               onClick={() => setFilter(prev => ({ ...prev, viewMode: 'month' }))}
               className={clsx(
-                "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                "px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all",
                 filter.viewMode === 'month' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
               )}
             >
@@ -1052,7 +1052,7 @@ export default function CollaborationDashboard() {
             <button
               onClick={() => setFilter(prev => ({ ...prev, viewMode: 'year' }))}
               className={clsx(
-                "flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all",
+                "px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all",
                 filter.viewMode === 'year' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
               )}
             >
@@ -1060,35 +1060,18 @@ export default function CollaborationDashboard() {
             </button>
           </div>
 
-          <div className="h-6 w-px bg-border mx-1"></div>
+          <div className="h-4 sm:h-6 w-px bg-border mx-1"></div>
 
           {/* Date Selection */}
 
-          {filter.viewMode === 'month' ? (
-            <div className="relative flex items-center">
-              <Calendar size={16} className="absolute left-2 text-text-muted pointer-events-none" />
-              <input
-                type="month"
-                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
-                value={filter.month}
-                onChange={(e) => setFilter({ ...filter, month: e.target.value })}
-                onKeyDown={(e) => e.preventDefault()}
-              />
-            </div>
-          ) : (
-            <div className="relative flex items-center">
-              <Calendar size={16} className="absolute left-2 text-text-muted pointer-events-none" />
-              <select
-                className="pl-7 pr-2 py-1 bg-transparent text-sm font-medium text-text focus:outline-none cursor-pointer w-full sm:w-auto"
-                value={filter.year}
-                onChange={(e) => setFilter({ ...filter, year: e.target.value })}
-              >
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-
-            </div>
+          {filter.viewMode === 'month' && (
+            <input
+              type="month"
+              className="bg-neutral-100 p-1 text-xs sm:text-sm font-medium text-text focus:outline-none cursor-pointer w-fit sm:min-w-[140px]"
+              value={filter.month}
+              onChange={(e) => setFilter({ ...filter, month: e.target.value })}
+              onKeyDown={(e) => e.preventDefault()}
+            />
           )}
         </div>
       </div>
@@ -1411,14 +1394,14 @@ export default function CollaborationDashboard() {
 
       {/* Transactions */}
       <div className="w-full">
-        <Card className="w-full flex flex-col bg-surface border-border shadow-card">
+        <div className="w-full flex flex-col">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-text">
+            <h3 className="text-xl font-bold flex items-center gap-2 text-text ml-2">
               <div className="w-1 h-6 bg-primary rounded-full"></div>
               {dashboardView === 'overview' ? 'Collaboration Overview' : 'Collaboration Transactions'}
             </h3>
             {/* View Toggle */}
-            <div className="flex bg-neutral-100 rounded-lg p-1 self-start sm:self-auto">
+            <div className="flex bg-neutral-100 rounded-lg p-1 self-center ml-2 sm:self-auto">
               <button
                 onClick={() => setDashboardView('overview')}
                 className={clsx(
@@ -1432,7 +1415,7 @@ export default function CollaborationDashboard() {
               <button
                 onClick={() => setDashboardView('transactions')}
                 className={clsx(
-                  "px-4 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2",
+                  "px-2 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-2",
                   dashboardView === 'transactions' ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text'
                 )}
               >
@@ -1443,7 +1426,7 @@ export default function CollaborationDashboard() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-surface-highlight/30 p-4 rounded-2xl border border-border mb-6">
+          <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-surface p-4 rounded-2xl border border-border mb-6">
             <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full xl:w-auto">
               {/* Search */}
               <div className="relative w-full xl:w-72">
@@ -1451,7 +1434,7 @@ export default function CollaborationDashboard() {
                 <input
                   type="text"
                   placeholder="Search transactions..."
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-surface focus:bg-surface-highlight focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-surface-highlight/30 focus:bg-surface-highlight focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                   value={filter.search}
                   onChange={(e) => setFilter({ ...filter, search: e.target.value })}
                 />
@@ -1459,7 +1442,7 @@ export default function CollaborationDashboard() {
               {/* User Filter */}
               <div className="relative w-full sm:w-auto col-span-1">
                 <select
-                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
+                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface-highlight/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
                   value={filter.userId}
                   onChange={(e) => setFilter({ ...filter, userId: e.target.value })}
                 >
@@ -1476,7 +1459,7 @@ export default function CollaborationDashboard() {
               {/* Type Filter */}
               <div className="relative w-full sm:w-auto col-span-1">
                 <select
-                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
+                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-xl border border-border bg-surface-highlight/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none cursor-pointer hover:border-primary/50"
                   value={filter.type}
                   onChange={(e) => setFilter({ ...filter, type: e.target.value })}
                 >
@@ -1505,8 +1488,8 @@ export default function CollaborationDashboard() {
                   date: new Date().toISOString().split('T')[0],
                 });
                 setShowModal(true);
-              }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-success hover:bg-success/90 text-white border-none">
-                <Plus size={20} />
+              }} className="flex-1 xl:flex-none items-center justify-center gap-1.5 sm:gap-2 shadow-glow bg-success hover:bg-success/90 text-white border-none py-2 sm:py-2.5 text-xs sm:text-sm">
+                <Plus size={16} className="sm:w-5 sm:h-5" />
                 Add Income
               </Button>
               <Button onClick={() => {
@@ -1521,8 +1504,8 @@ export default function CollaborationDashboard() {
                   date: new Date().toISOString().split('T')[0],
                 });
                 setShowModal(true);
-              }} className="flex-1 xl:flex-none items-center justify-center gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white border-none">
-                <Plus size={20} />
+              }} className="flex-1 xl:flex-none items-center justify-center gap-1.5 sm:gap-2 shadow-glow bg-danger hover:bg-danger/90 text-white border-none py-2 sm:py-2.5 text-xs sm:text-sm">
+                <Plus size={16} className="sm:w-5 sm:h-5" />
                 Add Expense
               </Button>
               {/* Pay / Request Buttons (Moved from Settlement Card) */}
@@ -1531,8 +1514,10 @@ export default function CollaborationDashboard() {
           </div>
 
           {dashboardView === 'overview' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 animate-slide-up pb-2">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 sm:gap-5 animate-slide-up">
+
+              {/* LEFT */}
+              <div className="xl:col-span-2 h-[350px] sm:h-[470px]">
                 <IncomeExpenseBreakdownWidget
                   totalIncome={filteredTransactions
                     .filter(t => t.type === 'income' && t.category !== 'Settlement Received')
@@ -1543,20 +1528,27 @@ export default function CollaborationDashboard() {
                   categoryData={categoryData}
                 />
               </div>
-              <div className="lg:col-span-2 flex flex-col gap-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[200px]">
+
+              {/* RIGHT */}
+              <div className="xl:col-span-2 flex flex-col sm:grid sm:grid-rows-[222px_1fr] grid-rows-[422px_1fr] gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-[422px] sm:h-[222px] overflow-hidden">
                   <SpendingPatternWidget data={categoryData} />
                   <CategoryHighlightWidget category={categoryHighlight} />
                 </div>
-                <div className="flex-1 min-h-[200px]">
+
+                {/* Bottom */}
+                <div>
                   <WeeklyActivityWidget
                     transactions={filteredTransactions}
                     selectedMonth={filter.month}
                     selectedYear={filter.year}
                   />
                 </div>
+
               </div>
             </div>
+
+
           ) : (
             <>
               <TableResponsive
@@ -1568,21 +1560,21 @@ export default function CollaborationDashboard() {
 
               {/* Pagination Controls */}
               {filteredTransactions.length > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 mt-4 border-t border-border">
-                  <div className="text-sm text-text-muted font-medium">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 px-2 py-3 sm:py-4 mt-3 sm:mt-4 border-t border-border">
+                  <div className="text-[10px] sm:text-xs text-text-muted font-medium text-center sm:text-left">
                     Showing <span className="text-text font-bold">{indexOfFirstTransaction + 1}</span> to <span className="text-text font-bold">{Math.min(indexOfLastTransaction, filteredTransactions.length)}</span> of <span className="text-text font-bold">{filteredTransactions.length}</span> transactions
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="gap-1"
+                      className="gap-1 px-2 py-1 h-7 sm:h-8 text-[10px] sm:text-xs"
                     >
-                      <ChevronLeft size={16} /> Previous
+                      <ChevronLeft size={14} className="sm:w-4 sm:h-4" /> Prev
                     </Button>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum = i + 1;
                         if (totalPages > 5 && currentPage > 3) {
@@ -1597,7 +1589,7 @@ export default function CollaborationDashboard() {
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
                             className={clsx(
-                              "w-8 h-8 rounded-lg text-sm font-bold transition-all",
+                              "w-6 h-6 sm:w-8 sm:h-8 rounded-lg text-[10px] sm:text-sm font-bold transition-all flex items-center justify-center",
                               currentPage === pageNum
                                 ? "bg-primary text-white shadow-md"
                                 : "text-text-muted hover:bg-neutral-100"
@@ -1613,16 +1605,16 @@ export default function CollaborationDashboard() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="gap-1"
+                      className="gap-1 px-2 py-1 h-7 sm:h-8 text-[10px] sm:text-xs"
                     >
-                      Next <ChevronRight size={16} />
+                      Next <ChevronRight size={14} className="sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </div>
               )}
             </>
           )}
-        </Card>
+        </div>
       </div >
 
       {/* Modal */}

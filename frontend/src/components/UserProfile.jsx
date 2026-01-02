@@ -5,6 +5,8 @@ import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { User, Mail, Phone, Edit2 } from 'lucide-react';
 
+import { ThemeToggle } from './ui/ThemeToggle';
+
 export function UserProfile({ isOpen, onClose }) {
     const { user, updateProfile } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
@@ -49,12 +51,13 @@ export function UserProfile({ isOpen, onClose }) {
             onClose={onClose}
             title="User Profile"
             description="Manage your personal information"
+            className="max-w-lg text-text font-medium text-sm sm:text-base"
         >
-            <div className="text-center mb-8">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl sm:text-3xl font-bold text-white shadow-lg shadow-primary/30">
+            <div className="text-center mb-4 sm:mb-6">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-xl sm:text-3xl font-bold text-white shadow-lg shadow-primary/30">
                     {user?.name?.charAt(0).toUpperCase()}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-text">
+                <h2 className="text-lg sm:text-2xl font-bold text-text">
                     @{user?.username || 'username'}
                 </h2>
             </div>
@@ -71,8 +74,8 @@ export function UserProfile({ isOpen, onClose }) {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                <div className="space-y-1">
                     <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
                         <User size={12} /> Name
                     </label>
@@ -84,26 +87,26 @@ export function UserProfile({ isOpen, onClose }) {
                                 setFormData({ ...formData, name: e.target.value })
                             }
                             required
-                            className="py-3"
+                            className="py-2 sm:py-3 text-sm sm:text-base"
                         />
                     ) : (
-                        <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group">
+                        <div className="text-text font-medium p-2.5 sm:p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group text-sm sm:text-base">
                             {user?.name}
                             <Edit2 size={14} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                     )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                     <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
                         <Mail size={12} /> Email
                     </label>
-                    <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border opacity-70">
+                    <div className="text-text font-medium p-2.5 sm:p-3.5 bg-surface-highlight/30 rounded-xl border border-border opacity-70 break-all text-xs sm:text-base">
                         {user?.email}
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                     <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1 flex items-center gap-1.5">
                         <Phone size={12} /> Mobile Number
                     </label>
@@ -115,35 +118,41 @@ export function UserProfile({ isOpen, onClose }) {
                                 setFormData({ ...formData, mobileNumber: e.target.value })
                             }
                             placeholder="Add mobile number"
-                            className="py-2.5 sm:py-3 text-sm sm:text-base"
+                            className="py-2 sm:py-3 text-sm sm:text-base"
                         />
                     ) : (
-                        <div className="text-text font-medium p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group">
+                        <div className="text-text font-medium p-2.5 sm:p-3.5 bg-surface-highlight/30 rounded-xl border border-border flex items-center justify-between group text-sm sm:text-base">
                             {user?.mobileNumber || <span className="text-text-muted italic">Not set</span>}
                             <Edit2 size={14} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                     )}
                 </div>
 
-                <div className="flex gap-3 mt-8 pt-2">
+                {/* Theme Toggle Dropdown */}
+                <div className="pt-2 flex justify-between items-center bg-surface-highlight/10 p-2.5 sm:p-3 rounded-xl border border-border/40">
+                    <span className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">App Theme</span>
+                    <ThemeToggle mode="dropdown" />
+                </div>
+
+                <div className="flex gap-3 mt-4 sm:mt-6 pt-2">
                     {isEditing ? (
                         <>
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="flex-1 py-3"
+                                className="flex-1 py-2 sm:py-3 text-xs sm:text-sm"
                                 onClick={() => setIsEditing(false)}
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" className="flex-1 py-3 shadow-lg shadow-primary/25">
+                            <Button type="submit" className="flex-1 py-2 sm:py-3 shadow-lg shadow-primary/25 text-xs sm:text-sm">
                                 Save Changes
                             </Button>
                         </>
                     ) : (
                         <Button
                             type="button"
-                            className="w-full py-3 shadow-lg shadow-primary/25"
+                            className="w-full py-2 sm:py-3 shadow-lg shadow-primary/25 text-xs sm:text-sm"
                             onClick={() => setIsEditing(true)}
                         >
                             Edit Profile
